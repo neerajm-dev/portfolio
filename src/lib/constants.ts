@@ -8,11 +8,11 @@ export const DEVELOPER_PROFILE = {
   education: "Pursuing BCA @ SNCT (Kerala, India)",
   location: "Kerala, India 🇮🇳",
   status: "AVAILABLE FOR BUILDS",
-  email: "ktcc.ofc@gmail.com",
+  email: "neerajm2k7@gmail.com",
   socials: {
     instagram: "https://instagram.com/neerajm_dev",
     github: "https://github.com/neerajm-dev",
-    email: "mailto:ktcc.ofc@gmail.com",
+    email: "mailto:neerajm2k7@gmail.com",
   },
   flagshipUrl: "https://ktccofficial.vercel.app",
   portfolioUrl: "https://neerajm.vercel.app",
@@ -109,8 +109,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: "Email",
-    handle: "ktcc.ofc@gmail.com",
-    url: "mailto:ktcc.ofc@gmail.com",
+    handle: "neerajm2k7@gmail.com",
+    url: "mailto:neerajm2k7@gmail.com",
     icon: "Mail",
     badge: "Direct Contact",
   },
@@ -174,7 +174,7 @@ Key Feat:   • Double-entry ledger prevents points race conditions
 ------------------------------------------------------
 • Instagram:  https://instagram.com/neerajm_dev  (@neerajm_dev)
 • GitHub:     https://github.com/neerajm-dev     (neerajm-dev / Neeraj M)
-• Email:      ktcc.ofc@gmail.com
+• Email:      neerajm2k7@gmail.com
 • Live App:   https://ktccofficial.vercel.app`,
 
   challenge: `ONAM VACATION BUILD-IN-PUBLIC CHALLENGE 🌴🚀

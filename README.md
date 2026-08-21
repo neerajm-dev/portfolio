@@ -14,7 +14,7 @@
 - **Socials:**
   - 📸 **Instagram:** [@neerajm_dev](https://instagram.com/neerajm_dev)
   - 🐙 **GitHub:** [neerajm-dev](https://github.com/neerajm-dev)
-  - ✉️ **Email:** `ktcc.ofc@gmail.com`
+  - ✉️ **Email:** `neerajm2k7@gmail.com`
 
 ---
 
