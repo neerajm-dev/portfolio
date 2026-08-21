@@ -75,7 +75,7 @@ export function Navbar() {
             className="flex items-center gap-1.5 rounded-lg border border-[#21262d] bg-[#0d1117] px-3 py-1.5 font-mono text-xs text-[#8b949e] transition-all hover:border-[#f59e0b]/50 hover:text-[#f59e0b]"
           >
             <InstagramIcon className="h-3.5 w-3.5 text-[#f59e0b]" />
-            <span>@neerajm_ig</span>
+            <span>@neerajm_dev</span>
             <ArrowUpRight className="h-3 w-3" />
           </a>
           <a

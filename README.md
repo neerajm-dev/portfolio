@@ -12,8 +12,8 @@
 - **Specialization:** Full-Stack Android & Cloud Platforms, $0 Cloud Infrastructure Specialist
 - **Flagship Project:** **KTCC Platform** (Live at [ktccofficial.vercel.app](https://ktccofficial.vercel.app))
 - **Socials:**
-  - 📸 **Instagram:** [@neerajm_ig](https://instagram.com/neerajm_ig)
-  - 🐙 **GitHub:** [ktcc-ofc](https://github.com/ktcc-ofc)
+  - 📸 **Instagram:** [@neerajm_dev](https://instagram.com/neerajm_dev)
+  - 🐙 **GitHub:** [neerajm-dev](https://github.com/neerajm-dev)
   - ✉️ **Email:** `ktcc.ofc@gmail.com`
 
 ---

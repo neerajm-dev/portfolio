@@ -2,7 +2,7 @@ import { Project, StackCategory, SocialLink } from "@/types";
 
 export const DEVELOPER_PROFILE = {
   name: "Neeraj M",
-  handle: "ktcc-ofc",
+  handle: "neerajm-dev",
   title: "Solo Architect & Systems Engineer",
   age: 19,
   education: "Pursuing BCA @ SNCT (Kerala, India)",
@@ -10,8 +10,8 @@ export const DEVELOPER_PROFILE = {
   status: "AVAILABLE FOR BUILDS",
   email: "ktcc.ofc@gmail.com",
   socials: {
-    instagram: "https://instagram.com/neerajm_ig",
-    github: "https://github.com/ktcc-ofc",
+    instagram: "https://instagram.com/neerajm_dev",
+    github: "https://github.com/neerajm-dev",
     email: "mailto:ktcc.ofc@gmail.com",
   },
   flagshipUrl: "https://ktccofficial.vercel.app",
@@ -36,7 +36,7 @@ export const FLAGSHIP_PROJECT: Project = {
   status: "LIVE PRODUCTION",
   badge: "FLAGSHIP SHOWCASE",
   liveUrl: "https://ktccofficial.vercel.app",
-  repoUrl: "https://github.com/ktcc-ofc",
+  repoUrl: "https://github.com/neerajm-dev",
   metrics: [
     { label: "Infrastructure Cost", value: "$0.00/month", highlight: true },
     { label: "Data Integrity", value: "Double-Entry Ledger" },
@@ -95,15 +95,15 @@ export const ZERO_DOLLAR_STACK: StackCategory[] = [
 export const SOCIAL_LINKS: SocialLink[] = [
   {
     name: "Instagram",
-    handle: "@neerajm_ig",
-    url: "https://instagram.com/neerajm_ig",
+    handle: "@neerajm_dev",
+    url: "https://instagram.com/neerajm_dev",
     icon: "Instagram",
     badge: "Daily Updates",
   },
   {
     name: "GitHub",
-    handle: "ktcc-ofc",
-    url: "https://github.com/ktcc-ofc",
+    handle: "neerajm-dev",
+    url: "https://github.com/neerajm-dev",
     icon: "Github",
     badge: "Open Source",
   },
@@ -172,8 +172,8 @@ Key Feat:   • Double-entry ledger prevents points race conditions
 
   socials: `CONNECT WITH NEERAJ M:
 ------------------------------------------------------
-• Instagram:  https://instagram.com/neerajm_ig  (@neerajm_ig)
-• GitHub:     https://github.com/ktcc-ofc       (ktcc-ofc / Neeraj M)
+• Instagram:  https://instagram.com/neerajm_dev  (@neerajm_dev)
+• GitHub:     https://github.com/neerajm-dev     (neerajm-dev / Neeraj M)
 • Email:      ktcc.ofc@gmail.com
 • Live App:   https://ktccofficial.vercel.app`,
 

@@ -21,8 +21,8 @@ When in doubt, **answer first, act later** — ask if the user wants you to make
   - Full-Stack Android & Cloud Platforms Builder
   - $0 Cloud Infrastructure Specialist
 - **Socials & Links:**
-  - **Instagram:** `@neerajm_ig`
-  - **GitHub:** `ktcc-ofc` / `Neeraj M`
+  - **Instagram:** `@neerajm_dev`
+  - **GitHub:** `neerajm-dev` / `Neeraj M`
   - **Email:** `ktcc.ofc@gmail.com`
   - **Live Flagship:** `https://ktccofficial.vercel.app`
   - **Portfolio Live Domain:** `https://neerajm.vercel.app` (Future custom domain: `https://neerajm.in`)
