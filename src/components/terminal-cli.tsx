@@ -35,11 +35,16 @@ export function TerminalCli() {
   const [historyIdx, setHistoryIdx] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (terminalBodyRef.current) {
+      terminalBodyRef.current.scrollTo({
+        top: terminalBodyRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [history]);
 
   const executeCommand = (rawCmd: string) => {
@@ -128,7 +133,7 @@ NEERAJ M MATRIX ACTIVATED // $0 CLOUD STACK RUNNING AT PEAK EFFICIENCY.`;
 
   const handleChipClick = (cmd: string) => {
     executeCommand(cmd);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   const handleCopyLogs = () => {
@@ -211,7 +216,8 @@ NEERAJ M MATRIX ACTIVATED // $0 CLOUD STACK RUNNING AT PEAK EFFICIENCY.`;
 
           {/* Terminal Body Content */}
           <div
-            onClick={() => inputRef.current?.focus()}
+            ref={terminalBodyRef}
+            onClick={() => inputRef.current?.focus({ preventScroll: true })}
             className="h-[360px] overflow-y-auto p-4 sm:p-6 font-mono text-xs sm:text-sm leading-relaxed text-[#f0f6fc] cursor-text"
           >
             {history.map((item) => (
@@ -258,8 +264,6 @@ NEERAJ M MATRIX ACTIVATED // $0 CLOUD STACK RUNNING AT PEAK EFFICIENCY.`;
                 <CornerDownLeft className="h-4 w-4" />
               </button>
             </div>
-
-            <div ref={bottomRef} />
           </div>
 
         </div>
