@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -78,6 +80,8 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-[#05070a] text-[#f0f6fc] font-sans antialiased selection:bg-[#00f0ff]/20 selection:text-[#00f0ff] flex flex-col">
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
