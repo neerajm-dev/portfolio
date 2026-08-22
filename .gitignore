@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# reference documents
+ASUS_TUF.pdf
+*.pdf
+
+# planning & ideas
+feature_ideas.md

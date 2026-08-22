@@ -1,47 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #05070a;
-  --foreground: #f8fafc;
+  --background: #000000;
+  --foreground: #00ff66;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), sans-serif;
+  background-color: #000000;
+  color: #00ff66;
+  font-family: var(--font-jetbrains-mono), monospace;
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-outfit), sans-serif;
-}
-
-code, pre, .font-mono {
+h1, h2, h3, h4, h5, h6, pre, code, button, input, p, div, span, a {
   font-family: var(--font-jetbrains-mono), monospace;
 }
 
-/* Custom Cyberpunk Dark Scrollbar */
+/* Custom Phosphor Green Terminal Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #05070a;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #00ff66;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00f0ff;
+  background: #00cc52;
 }
 
-/* Custom Text Selection */
+/* Phosphor Green Text Selection */
 ::selection {
-  background: #00f0ff;
+  background: #00ff66;
   color: #000000;
 }
