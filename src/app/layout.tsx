@@ -1,70 +1,73 @@
-import type { Metadata, Viewport } from "next";
-import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import type { Metadata } from "next";
+import { Outfit, JetBrains_Mono, Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const outfit = Outfit({
+  subsets: ["latin"],
   variable: "--font-outfit",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
   display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
   subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
-export const viewport: Viewport = {
-  themeColor: "#05070a",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-};
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Neeraj M — Solo Architect & Systems Engineer",
+  metadataBase: new URL("https://neerajm.vercel.app"),
+  title: "Neeraj M // Solo Systems Architect & Full-Stack Engineer",
   description:
-    "19yo Full-Stack Android & Cloud Platforms architect. $0 cloud infrastructure specialist, builder of KTCC tournament platform, and high-velocity systems engineer.",
+    "Personal developer portfolio of Neeraj M (19yo Systems Architect & Full-Stack Builder). Creator of KTCC Platform, Next.js 15, Android Hybrid Engines, and $0 Cloud Infrastructure.",
   keywords: [
     "Neeraj M",
-    "Systems Engineer",
-    "Full-Stack Android",
-    "Cloud Architecture",
-    "Zero Dollar Infrastructure",
-    "KTCC",
+    "Systems Architect",
+    "Full-Stack Developer",
     "Next.js 15",
     "Supabase",
+    "Capacitor Android",
     "Cloudflare R2",
-    "Kerala Developer",
+    "TokyoNight",
     "Portfolio",
+    "Kerala Developer",
   ],
   authors: [{ name: "Neeraj M", url: "https://neerajm.vercel.app" }],
   creator: "Neeraj M",
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://neerajm.vercel.app",
-    title: "Neeraj M | Solo Architect & Systems Engineer",
+    title: "Neeraj M // Systems Architect & Full-Stack Engineer",
     description:
-      "Engineering full-scale Android and cloud platforms at strictly $0.00/mo ongoing cloud budget. Flagship: KTCC Tournament Platform.",
-    siteName: "Neeraj M Developer Portfolio",
+      "Architecting Production Platforms from Scratch. Full-Stack Android & Cloud Platforms with $0 Infrastructure.",
+    url: "https://neerajm.vercel.app",
+    siteName: "Neeraj M Portfolio",
+    images: [
+      {
+        url: "/avatar-neeraj.png",
+        width: 800,
+        height: 800,
+        alt: "Neeraj M - ASCII Matrix Avatar",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Neeraj M — Solo Architect & Systems Engineer",
+    title: "Neeraj M // Systems Architect",
     description:
-      "Engineering full-scale Android and cloud platforms at strictly $0.00/mo ongoing cloud budget.",
+      "Architecting Production Platforms from Scratch. $0 Cloud Infrastructure Specialist.",
+    creator: "@neerajm_dev",
+    images: ["/avatar-neeraj.png"],
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/avatar-neeraj.png",
   },
 };
 
@@ -74,11 +77,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${outfit.variable} ${inter.variable} ${jetbrainsMono.variable} dark`}
-    >
-      <body className="min-h-screen bg-[#05070a] text-[#f0f6fc] font-sans antialiased selection:bg-[#00f0ff]/20 selection:text-[#00f0ff] flex flex-col">
+    <html lang="en" className="dark scroll-smooth">
+      <body
+        className={`${outfit.variable} ${jetbrainsMono.variable} ${inter.variable} antialiased bg-[#05070a] text-white font-sans`}
+      >
         {children}
         <Analytics />
         <SpeedInsights />

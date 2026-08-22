@@ -1,273 +1,393 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { TERMINAL_COMMANDS } from "@/lib/constants";
-import { TerminalHistoryItem } from "@/types";
-import {
-  Terminal as TerminalIcon,
-  CornerDownLeft,
-  Trash2,
-  Copy,
-  Check,
-} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { sound } from "@/lib/sound";
+import { DecodeText } from "./ui/decode-text";
+import { Terminal as TerminalIcon, CornerDownLeft, Sparkles, Copy, Check, Trash2, Volume2 } from "lucide-react";
 
-const INITIAL_HISTORY: TerminalHistoryItem[] = [
-  {
-    id: "init-1",
-    command: "system-boot --profile",
-    timestamp: "17:30:00",
-    output: `[SYSTEM] Neeraj M Portfolio OS v1.0.0 (x86_64-vercel-edge)
-[STATUS] 100% $0.00/mo cloud infrastructure verified.
-Type "help" to list available system commands or click the shortcut chips below.`,
-  },
-  {
-    id: "init-2",
-    command: "help",
-    timestamp: "17:30:01",
-    output: TERMINAL_COMMANDS.help,
-  },
+interface LogEntry {
+  id: string;
+  type: "command" | "output" | "error" | "matrix";
+  content: string | React.ReactNode;
+}
+
+const INITIAL_COMMANDS = [
+  "help",
+  "whoami",
+  "architecture",
+  "ktcc",
+  "stack",
+  "lab",
+  "matrix",
+  "socials",
+  "sound",
+  "clear",
 ];
 
 export function TerminalCli() {
-  const [inputVal, setInputVal] = useState("");
-  const [history, setHistory] = useState<TerminalHistoryItem[]>(INITIAL_HISTORY);
-  const [commandHistory, setCommandHistory] = useState<string[]>(["help"]);
-  const [historyIdx, setHistoryIdx] = useState<number>(-1);
+  const [input, setInput] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
-
-  const terminalBodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  const [logs, setLogs] = useState<LogEntry[]>([
+    {
+      id: "welcome",
+      type: "output",
+      content: (
+        <div className="text-gray-300 space-y-1 font-mono text-xs md:text-sm">
+          <div className="text-[#00f0ff] font-bold">
+            NEERAJ_OS v2.4.0 (x86_64-linux-gnu // TokyoNight Kernel)
+          </div>
+          <div className="text-gray-400 text-xs">
+            Type <span className="text-[#10b981] font-bold">help</span> to view available system commands or click the chips below.
+          </div>
+        </div>
+      ),
+    },
+  ]);
 
   useEffect(() => {
-    if (terminalBodyRef.current) {
-      terminalBodyRef.current.scrollTo({
-        top: terminalBodyRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
+
+  const executeCommand = (cmdStr: string) => {
+    const cleanCmd = cmdStr.trim().toLowerCase();
+    if (!cleanCmd) return;
+
+    sound.playClick(1.2);
+
+    const cmdEntry: LogEntry = {
+      id: Math.random().toString(),
+      type: "command",
+      content: cmdStr,
+    };
+
+    setHistory((prev) => [...prev, cmdStr]);
+    setHistoryIndex(-1);
+
+    let outputEntry: LogEntry;
+
+    switch (cleanCmd) {
+      case "help":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-white font-bold mb-1">AVAILABLE COMMANDS:</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                <div><span className="text-[#00f0ff] font-bold">whoami</span> — Developer credentials & philosophy</div>
+                <div><span className="text-[#00f0ff] font-bold">architecture</span> — 5-Layer cloud blueprint</div>
+                <div><span className="text-[#00f0ff] font-bold">ktcc</span> — Flagship tournament platform details</div>
+                <div><span className="text-[#00f0ff] font-bold">stack</span> — $0.00/mo cloud infrastructure breakdown</div>
+                <div><span className="text-[#00f0ff] font-bold">lab</span> — Jump to ACID SQL Ledger Sandbox</div>
+                <div><span className="text-[#00f0ff] font-bold">matrix</span> — Stream green cyber ASCII matrix</div>
+                <div><span className="text-[#00f0ff] font-bold">socials</span> — Direct GitHub, Instagram & Email links</div>
+                <div><span className="text-[#00f0ff] font-bold">sound</span> — Toggle Web Audio synthesized SFX</div>
+                <div><span className="text-[#00f0ff] font-bold">clear</span> — Wipe terminal logs</div>
+              </div>
+            </div>
+          ),
+        };
+        break;
+
+      case "whoami":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1.5 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#00f0ff] font-bold">NAME: Neeraj M</div>
+              <div>ROLE: Solo Systems Architect & Full-Stack Engineer (Age 19)</div>
+              <div>EDUCATION: Pursuing BCA @ Sree Narayana College of Technology (SNCT), Kollam</div>
+              <div>FOCUS: Next.js 15, Android Hybrid Engines, PostgreSQL RLS & $0 Cloud Infrastructure</div>
+              <div className="text-[#10b981] font-bold mt-1">
+                &quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;
+              </div>
+            </div>
+          ),
+        };
+        break;
+
+      case "architecture":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#f59e0b] font-bold">5-LAYER ZERO-COST CLOUD ARCHITECTURE:</div>
+              <div>1. [CLIENT] Next.js 15 PWA + Capacitor Android Release APK</div>
+              <div>2. [ROUTING] Vercel Edge SSR with Turbopack (187ms hot reload)</div>
+              <div>3. [AUTH & FIREWALL] Supabase GoTrue + Zero-Trust PostgreSQL RLS</div>
+              <div>4. [LEDGER] Immutable double-entry SQL transactions (100% ACID)</div>
+              <div>5. [EDGE CDN] Cloudflare R2 APAC bucket ($0.00 permanent egress)</div>
+            </div>
+          ),
+        };
+        break;
+
+      case "ktcc":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#00f0ff] font-bold">KTCC (KERALA TOURERS COMMUNITY CHAMPIONSHIP)</div>
+              <div>• Live Platform: https://ktccofficial.vercel.app</div>
+              <div>• Scale: 12 Active Tournament Teams, 100+ Match Events</div>
+              <div>• Engine: Immutable SQL point ledger, zero duplicate claims</div>
+              <div>• Mobile: Signed Android APK with native in-app auto-updater</div>
+              <div>• Cost: $0.00/month permanent hosting across 1,000+ daily requests</div>
+            </div>
+          ),
+        };
+        break;
+
+      case "stack":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#10b981] font-bold">TECHNICAL STACK & TOOLCHAIN:</div>
+              <div>• Frontend: Next.js 15, React 19, TypeScript, Tailwind CSS 4</div>
+              <div>• Mobile: Capacitor 7 Android Native Bridge, Java OTA Bridge</div>
+              <div>• Backend: Supabase (PostgreSQL, Edge Functions, RLS, Storage)</div>
+              <div>• CDN & Edge: Cloudflare R2 APAC, Cloudflare Workers</div>
+              <div>• CI/CD: GitHub Actions (Automated Gradle Keystore Builds)</div>
+              <div>• AI Tooling: Antigravity IDE, Claude 3.7, Gemini 2.5 Pro</div>
+            </div>
+          ),
+        };
+        break;
+
+      case "lab":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#10b981] font-bold">REDIRECTING TO LAB SANDBOX...</div>
+              <div>Scroll to the ACID SQL Ledger Sandbox below to simulate database double-spend attacks!</div>
+            </div>
+          ),
+        };
+        const labElem = document.getElementById("lab");
+        labElem?.scrollIntoView({ behavior: "smooth" });
+        break;
+
+      case "matrix":
+        sound.playSuccess();
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "matrix",
+          content: (
+            <div className="text-[#10b981] font-mono text-xs leading-none tracking-widest break-all select-none animate-pulse">
+              {Array.from({ length: 8 })
+                .map(() => "01010110 01001001 01010011 01001001 01001111 01001110 0xNEERAJ λ§#░█*+~ 01010011 01010100 01000001 01000011 01001011")
+                .join("\n")}
+            </div>
+          ),
+        };
+        break;
+
+      case "socials":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div>• GitHub: <a href="https://github.com/neerajm-dev" target="_blank" className="text-[#00f0ff] underline">github.com/neerajm-dev</a></div>
+              <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" className="text-[#00f0ff] underline">@neerajm_dev</a></div>
+              <div>• Email: <span className="text-[#10b981]">neerajm2k7@gmail.com</span></div>
+              <div>• Portfolio: <a href="https://neerajm.vercel.app" target="_blank" className="text-[#00f0ff] underline">neerajm.vercel.app</a></div>
+            </div>
+          ),
+        };
+        break;
+
+      case "sound":
+        const enabled = sound.toggle();
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="text-xs md:text-sm font-mono text-gray-300">
+              Web Audio Synthesizer: <span className={enabled ? "text-[#10b981] font-bold" : "text-red-400 font-bold"}>
+                {enabled ? "ENABLED (SFX ON)" : "MUTED (SFX OFF)"}
+              </span>
+            </div>
+          ),
+        };
+        break;
+
+      case "clear":
+        setLogs([]);
+        return;
+
+      default:
+        sound.playError();
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "error",
+          content: (
+            <div className="text-red-400 text-xs md:text-sm font-mono">
+              Command not recognized: &quot;{cmdStr}&quot;. Type <span className="text-[#00f0ff] font-bold">help</span> to view available commands.
+            </div>
+          ),
+        };
+        break;
     }
-  }, [history]);
 
-  const executeCommand = (rawCmd: string) => {
-    const trimmed = rawCmd.trim().toLowerCase();
-    if (!trimmed) return;
-
-    // Add to command history
-    setCommandHistory((prev) => [...prev, trimmed]);
-    setHistoryIdx(-1);
-
-    const timestamp = new Date().toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-
-    if (trimmed === "clear") {
-      setHistory([]);
-      setInputVal("");
-      return;
-    }
-
-    let output = "";
-
-    if (trimmed === "help") {
-      output = TERMINAL_COMMANDS.help;
-    } else if (trimmed === "whoami") {
-      output = TERMINAL_COMMANDS.whoami;
-    } else if (trimmed === "ktcc") {
-      output = TERMINAL_COMMANDS.ktcc;
-    } else if (trimmed === "stack") {
-      output = TERMINAL_COMMANDS.stack;
-    } else if (trimmed === "stats") {
-      output = TERMINAL_COMMANDS.stats;
-    } else if (trimmed === "socials") {
-      output = TERMINAL_COMMANDS.socials;
-    } else if (trimmed === "challenge") {
-      output = TERMINAL_COMMANDS.challenge;
-    } else if (trimmed === "matrix") {
-      output = `01001110 01100101 01100101 01110010 01100001 01101010 00100000 01001101
-NEERAJ M MATRIX ACTIVATED // $0 CLOUD STACK RUNNING AT PEAK EFFICIENCY.`;
-    } else if (trimmed === "exit" || trimmed === "quit") {
-      output = `Session cannot be terminated. You are in read-only architectural telemetry mode.`;
-    } else {
-      output = `zsh: command not found: ${trimmed}. Type "help" for a list of available commands.`;
-    }
-
-    setHistory((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        command: rawCmd,
-        timestamp,
-        output,
-        isError: !TERMINAL_COMMANDS[trimmed as keyof typeof TERMINAL_COMMANDS] && trimmed !== "matrix",
-      },
-    ]);
-
-    setInputVal("");
+    setLogs((prev) => [...prev, cmdEntry, outputEntry]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    sound.playClick(0.9 + Math.random() * 0.3);
+
     if (e.key === "Enter") {
-      executeCommand(inputVal);
+      executeCommand(input);
+      setInput("");
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (commandHistory.length === 0) return;
-      const nextIdx = historyIdx + 1;
-      if (nextIdx < commandHistory.length) {
-        setHistoryIdx(nextIdx);
-        setInputVal(commandHistory[commandHistory.length - 1 - nextIdx]);
-      }
+      if (history.length === 0) return;
+      const nextIdx = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIdx);
+      setInput(history[nextIdx]);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (historyIdx > 0) {
-        const nextIdx = historyIdx - 1;
-        setHistoryIdx(nextIdx);
-        setInputVal(commandHistory[commandHistory.length - 1 - nextIdx]);
-      } else if (historyIdx === 0) {
-        setHistoryIdx(-1);
-        setInputVal("");
+      if (history.length === 0 || historyIndex === -1) return;
+      const nextIdx = historyIndex + 1;
+      if (nextIdx >= history.length) {
+        setHistoryIndex(-1);
+        setInput("");
+      } else {
+        setHistoryIndex(nextIdx);
+        setInput(history[nextIdx]);
       }
     }
   };
 
-  const handleChipClick = (cmd: string) => {
-    executeCommand(cmd);
-    inputRef.current?.focus({ preventScroll: true });
-  };
-
   const handleCopyLogs = () => {
-    const fullLog = history
-      .map((item) => `neeraj@sys-arch:~$ ${item.command}\n${item.output}`)
-      .join("\n\n");
-    navigator.clipboard.writeText(fullLog);
+    sound.playSuccess();
+    const textLogs = logs.map((l) => (typeof l.content === "string" ? l.content : `[${l.type}]`)).join("\n");
+    navigator.clipboard.writeText(textLogs);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <section id="terminal" className="py-12 md:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        
-        {/* Section Header */}
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 font-mono text-xs text-[#00f0ff]">
-              <TerminalIcon className="h-4 w-4" />
-              <span>INTERACTIVE TERMINAL CLI</span>
-            </div>
-            <h2 className="mt-1 font-outfit text-2xl font-bold tracking-tight text-[#f0f6fc] sm:text-3xl">
-              Direct Systems Console
-            </h2>
+    <section id="cli" className="relative py-20 px-4 max-w-5xl mx-auto z-10 font-mono">
+      {/* Section Header */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d1117] border border-[#00f0ff]/30 text-[#00f0ff] font-mono text-xs mb-3 shadow-inner">
+          <TerminalIcon className="w-3.5 h-3.5 animate-pulse" />
+          <span>// INTERACTIVE WEB WORKSTATION</span>
+        </div>
+        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white font-sans uppercase">
+          <DecodeText text="Cyberdeck Terminal CLI" />
+        </h2>
+        <p className="text-gray-400 text-sm max-w-xl mx-auto mt-2 font-mono">
+          An embedded command engine. Type commands with your keyboard or tap the quick-action chips below.
+        </p>
+      </div>
+
+      {/* Terminal Window Box */}
+      <div className="rounded-2xl border border-white/15 bg-[#05070a] shadow-2xl overflow-hidden backdrop-blur-xl">
+        {/* Title Bar */}
+        <div className="h-10 bg-[#0d1117] border-b border-white/10 px-4 flex items-center justify-between text-xs text-gray-400 select-none">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/80" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+            <div className="w-3 h-3 rounded-full bg-green-500/80" />
+            <span className="ml-2 font-bold text-gray-300">neeraj@cyberdeck:~ (zsh)</span>
           </div>
-          <p className="max-w-md font-sans text-xs text-[#8b949e]">
-            Execute system commands directly or tap quick chips to query architecture specs, live stats, and project case studies.
-          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyLogs}
+              onMouseEnter={() => sound.playHover()}
+              className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              title="Copy Terminal Logs"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-[#10b981]" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setLogs([]);
+              }}
+              onMouseEnter={() => sound.playHover()}
+              className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              title="Clear Terminal"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Quick Suggestion Pills */}
-        <div className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs">
-          <span className="text-[11px] text-[#8b949e]">Suggested commands:</span>
-          {["whoami", "ktcc", "stack", "stats", "socials", "challenge", "clear"].map((cmd) => (
+        {/* Terminal Body */}
+        <div
+          className="p-5 min-h-[300px] max-h-[460px] overflow-y-auto space-y-3 cursor-text"
+          onClick={() => inputRef.current?.focus()}
+        >
+          {logs.map((log) => (
+            <div key={log.id} className="leading-relaxed">
+              {log.type === "command" ? (
+                <div className="flex items-center gap-2 text-[#00f0ff] font-bold text-xs md:text-sm">
+                  <span className="text-[#10b981]">neeraj@cyberdeck:~$</span>
+                  <span>{log.content}</span>
+                </div>
+              ) : (
+                <div className="pl-4 border-l border-white/10">{log.content}</div>
+              )}
+            </div>
+          ))}
+
+          {/* Active Input Line */}
+          <div className="flex items-center gap-2 text-xs md:text-sm pt-1">
+            <span className="text-[#10b981] font-bold">neeraj@cyberdeck:~$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 bg-transparent border-none outline-none text-white font-mono text-xs md:text-sm caret-[#00f0ff]"
+              autoFocus
+              placeholder="type 'help' or click buttons below..."
+            />
+            <button
+              onClick={() => {
+                executeCommand(input);
+                setInput("");
+              }}
+              className="text-gray-500 hover:text-[#00f0ff] p-1"
+            >
+              <CornerDownLeft className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div ref={terminalEndRef} />
+        </div>
+
+        {/* Quick-Action Chips Footer */}
+        <div className="p-3 bg-[#080b10] border-t border-white/10 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] text-gray-500 mr-1 font-bold">QUICK EXEC:</span>
+          {INITIAL_COMMANDS.map((cmd) => (
             <button
               key={cmd}
-              onClick={() => handleChipClick(cmd)}
-              className="rounded-md border border-[#21262d] bg-[#0d1117] px-2.5 py-1 text-[#8b949e] transition-all hover:border-[#00f0ff]/50 hover:bg-[#161b22] hover:text-[#00f0ff] active:scale-95"
+              onClick={() => executeCommand(cmd)}
+              onMouseEnter={() => sound.playHover()}
+              className="px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff]/40 border border-white/8 text-gray-300 hover:text-[#00f0ff] text-[11px] font-mono transition-all active:scale-95 cursor-pointer"
             >
-              {cmd}
+              ${cmd}
             </button>
           ))}
         </div>
-
-        {/* Terminal Window Container */}
-        <div className="overflow-hidden rounded-2xl border border-[#21262d] bg-[#090d13] shadow-2xl shadow-[#00f0ff]/5 scanlines">
-          
-          {/* Terminal Window Header Bar */}
-          <div className="flex items-center justify-between border-b border-[#21262d] bg-[#0d1117] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-[#ef4444]/80 inline-block"></span>
-              <span className="h-3 w-3 rounded-full bg-[#f59e0b]/80 inline-block"></span>
-              <span className="h-3 w-3 rounded-full bg-[#10b981]/80 inline-block"></span>
-              <span className="ml-2 font-mono text-xs text-[#8b949e] hidden sm:inline">
-                neeraj@sys-arch: ~/portfolio (zsh)
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopyLogs}
-                className="flex items-center gap-1 rounded px-2 py-1 font-mono text-[11px] text-[#8b949e] hover:bg-[#161b22] hover:text-[#f0f6fc] active:scale-95"
-                title="Copy Terminal Logs"
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-[#10b981]" /> : <Copy className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">{copied ? "Copied" : "Copy Output"}</span>
-              </button>
-
-              <button
-                onClick={() => setHistory([])}
-                className="flex items-center gap-1 rounded px-2 py-1 font-mono text-[11px] text-[#8b949e] hover:bg-[#161b22] hover:text-[#ef4444] active:scale-95"
-                title="Clear Terminal Buffer"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Clear</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Terminal Body Content */}
-          <div
-            ref={terminalBodyRef}
-            onClick={() => inputRef.current?.focus({ preventScroll: true })}
-            className="h-[360px] overflow-y-auto p-4 sm:p-6 font-mono text-xs sm:text-sm leading-relaxed text-[#f0f6fc] cursor-text"
-          >
-            {history.map((item) => (
-              <div key={item.id} className="mb-4">
-                <div className="flex items-center gap-2 text-[#8b949e]">
-                  <span className="text-[#10b981]">neeraj@sys-arch</span>
-                  <span className="text-[#8b949e]">:</span>
-                  <span className="text-[#00f0ff]">~</span>
-                  <span className="text-[#f0f6fc]">$</span>
-                  <span className="text-[#f0f6fc] font-semibold">{item.command}</span>
-                  <span className="ml-auto text-[10px] text-[#484f58]">{item.timestamp}</span>
-                </div>
-                <pre
-                  className={`mt-1.5 whitespace-pre-wrap font-mono text-xs sm:text-xs leading-relaxed ${
-                    item.isError ? "text-[#f87171]" : "text-[#8b949e]"
-                  }`}
-                >
-                  {item.output}
-                </pre>
-              </div>
-            ))}
-
-            {/* Current Active Input Prompt */}
-            <div className="flex items-center gap-2 pt-1">
-              <span className="text-[#10b981] font-semibold">neeraj@sys-arch</span>
-              <span className="text-[#8b949e]">:</span>
-              <span className="text-[#00f0ff]">~</span>
-              <span className="text-[#f0f6fc]">$</span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="type a command (e.g. whoami, ktcc, stack)..."
-                className="flex-1 bg-transparent text-[#f0f6fc] placeholder-[#484f58] outline-none font-mono text-xs sm:text-sm caret-[#00f0ff]"
-                autoComplete="off"
-                spellCheck="false"
-              />
-              <button
-                onClick={() => executeCommand(inputVal)}
-                className="rounded p-1 text-[#8b949e] hover:text-[#00f0ff] sm:hidden"
-              >
-                <CornerDownLeft className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </section>
   );

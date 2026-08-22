@@ -1,37 +1,42 @@
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { Telemetry } from "@/components/telemetry";
-import { TerminalCli } from "@/components/terminal-cli";
+import { ArchitectureOrbit } from "@/components/architecture-orbit";
 import { Projects } from "@/components/projects";
-import { Stack } from "@/components/stack";
+import { TerminalCli } from "@/components/terminal-cli";
+import { LedgerSandbox } from "@/components/ledger-sandbox";
 import { Footer } from "@/components/footer";
+import { AsciiCanvas } from "@/components/ascii-canvas";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-[#05070a] bg-grid-cyber flex flex-col selection:bg-[#00f0ff]/20 selection:text-[#00f0ff]">
-      {/* Top Header Navigation */}
+    <main className="min-h-screen bg-[#05070a] text-white selection:bg-[#00f0ff] selection:text-black relative overflow-x-hidden">
+      {/* Living ASCII Matrix Canvas Background */}
+      <AsciiCanvas />
+
+      {/* Navigation Bar with Web Audio Engine */}
       <Navbar />
 
-      {/* Main Showcase Stage */}
-      <main className="flex-1">
-        {/* Cinematic Hero Stage */}
-        <Hero />
+      {/* Hero Stage with Matrix Avatar & Kinetic Typography */}
+      <Hero />
 
-        {/* Live System Telemetry Banner */}
-        <Telemetry />
+      {/* Cyberdeck Telemetry HUD Bar */}
+      <Telemetry />
 
-        {/* Interactive Working Terminal CLI */}
-        <TerminalCli />
+      {/* 3D Nodal Architecture Blueprint & Packet Router */}
+      <ArchitectureOrbit />
 
-        {/* KTCC Flagship Project Case Study */}
-        <Projects />
+      {/* 4-Pillar Engineering Showcase */}
+      <Projects />
 
-        {/* $0 Cloud Infrastructure Breakdown */}
-        <Stack />
-      </main>
+      {/* Interactive Cyberdeck Web Terminal CLI */}
+      <TerminalCli />
 
-      {/* Footer & Social Hub */}
+      {/* Interactive ACID SQL Ledger Sandbox */}
+      <LedgerSandbox />
+
+      {/* Footer & Connectivity */}
       <Footer />
-    </div>
+    </main>
   );
 }

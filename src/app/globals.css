@@ -1,140 +1,47 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --canvas: #05070a;
-    --surface: #0d1117;
-    --surface-hover: #161b22;
-    --border: #21262d;
-    --border-highlight: #30363d;
-    --neon-cyan: #00f0ff;
-    --neon-cyan-glow: rgba(0, 240, 255, 0.25);
-    --neon-emerald: #10b981;
-    --neon-emerald-glow: rgba(16, 185, 129, 0.25);
-    --neon-amber: #f59e0b;
-    --neon-purple: #818cf8;
-    --text-primary: #f0f6fc;
-    --text-secondary: #8b949e;
-    --text-muted: #484f58;
-  }
-
-  * {
-    border-color: var(--border);
-    box-sizing: border-box;
-  }
-
-  html {
-    scroll-behavior: smooth;
-    color-scheme: dark;
-  }
-
-  body {
-    background-color: var(--canvas);
-    color: var(--text-primary);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    overflow-x: hidden;
-  }
-
-  /* Custom high-tech scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #05070a;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #21262d;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #00f0ff;
-  }
+:root {
+  --background: #05070a;
+  --foreground: #f8fafc;
 }
 
-/* Background Cyberpunk Grid & Glow Elements */
-.bg-grid-cyber {
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  overflow-x: hidden;
 }
 
-.bg-radial-gradient {
-  background: radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, rgba(13, 17, 23, 0) 70%);
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit), sans-serif;
 }
 
-.glass-card {
-  background: rgba(13, 17, 23, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+code, pre, .font-mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+/* Custom Cyberpunk Dark Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #05070a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.glass-card-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+::-webkit-scrollbar-thumb:hover {
+  background: #00f0ff;
 }
 
-.glass-card-hover:hover {
-  border-color: rgba(0, 240, 255, 0.4);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.12);
-  transform: translateY(-2px);
-}
-
-.neon-border-cyan {
-  border-color: #00f0ff;
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-}
-
-.neon-border-emerald {
-  border-color: #10b981;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-}
-
-.neon-text-cyan {
-  color: #00f0ff;
-  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
-}
-
-.neon-text-emerald {
-  color: #10b981;
-  text-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
-}
-
-/* Scanline Effect for Terminal */
-.scanlines {
-  position: relative;
-  overflow: hidden;
-}
-
-.scanlines::before {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-  background-size: 100% 4px;
-  z-index: 2;
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-/* Pulse Beacon Animation */
-@keyframes beacon-pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-  }
-}
-
-.beacon-live {
-  animation: beacon-pulse 2s infinite;
+/* Custom Text Selection */
+::selection {
+  background: #00f0ff;
+  color: #000000;
 }
