@@ -146,7 +146,7 @@ export function AsciiIdCard({
 
   return (
     <div
-      className="w-[92vw] sm:w-[520px] h-[325px] mx-auto select-none [perspective:1200px] shrink-0 cursor-grab active:cursor-grabbing touch-none"
+      className="w-[92vw] sm:w-[520px] h-[325px] mx-auto select-none [perspective:1200px] shrink-0 touch-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

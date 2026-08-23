@@ -40,9 +40,9 @@ h1, h2, h3, h4, h5, h6, pre, code, button, input, p, div, span, a {
   color: #000000;
 }
 
-/* Custom Futuristic Cursor Override on Desktop */
+/* Custom Futuristic Cursor Override on Desktop - Universal Application */
 @media (pointer: fine) {
-  html, body, canvas, button, a, [role="button"], .cursor-pointer {
+  *, *::before, *::after, html, body {
     cursor: none !important;
   }
 }
