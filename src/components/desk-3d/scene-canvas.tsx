@@ -122,9 +122,12 @@ export function SceneCanvas({
     // Atmospheric exponential distance fog
     scene.fog = new THREE.FogExp2(0x000000, 0.016);
 
+    const initialWidth = Math.max(1, container.clientWidth || window.innerWidth || 1920);
+    const initialHeight = Math.max(1, container.clientHeight || window.innerHeight || 1080);
+
     const camera = new THREE.PerspectiveCamera(
       42,
-      container.clientWidth / container.clientHeight,
+      initialWidth / initialHeight,
       0.1,
       400
     );
@@ -145,7 +148,7 @@ export function SceneCanvas({
       return;
     }
 
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(initialWidth, initialHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.shadowMap.enabled = false;
     container.appendChild(renderer.domElement);
@@ -546,43 +549,70 @@ export function SceneCanvas({
     container.addEventListener("pointercancel", handlePointerUp);
     container.addEventListener("wheel", handleWheel, { passive: false });
 
-    // 6. RESIZE OBSERVER
-    const handleResize = () => {
-      if (!container || !renderer) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+    // 6. WEBGL CONTEXT LOSS & RESTORE HANDLERS
+    const canvasElement = renderer.domElement;
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
     };
-    window.addEventListener("resize", handleResize);
+    const handleContextRestored = () => {
+      if (!container || !renderer) return;
+      const w = Math.max(1, container.clientWidth || window.innerWidth);
+      const h = Math.max(1, container.clientHeight || window.innerHeight);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+      renderer.render(scene, camera);
+    };
+    canvasElement.addEventListener("webglcontextlost", handleContextLost, false);
+    canvasElement.addEventListener("webglcontextrestored", handleContextRestored, false);
 
-    // 7. VISIBILITY & INTERSECTION PAUSING (Zero GPU consumption when hidden)
-    let isTabVisible = document.visibilityState === "visible";
-    let isIntersecting = true;
+    // 7. ROBUST RESIZE OBSERVER (Handles container dimension changes reliably)
+    const updateDimensions = (w: number, h: number) => {
+      if (!renderer || w <= 32 || h <= 32) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+
+    const handleWindowResize = () => {
+      if (!container) return;
+      const w = Math.max(1, container.clientWidth || window.innerWidth);
+      const h = Math.max(1, container.clientHeight || window.innerHeight);
+      updateDimensions(w, h);
+    };
+    window.addEventListener("resize", handleWindowResize);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const w = Math.max(1, entry.contentRect.width || container.clientWidth || window.innerWidth);
+          const h = Math.max(1, entry.contentRect.height || container.clientHeight || window.innerHeight);
+          updateDimensions(w, h);
+        }
+      });
+      resizeObserver.observe(container);
+    }
+
+    // 8. VISIBILITY CHANGE HANDLING (Pause GPU when tab is hidden)
+    let isTabVisible = typeof document !== "undefined" ? document.visibilityState === "visible" : true;
 
     const handleVisibilityChange = () => {
-      isTabVisible = document.visibilityState === "visible";
+      isTabVisible = typeof document !== "undefined" ? document.visibilityState === "visible" : true;
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isIntersecting = entry.isIntersecting;
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(container);
-
-    // 8. 60FPS CAPPED SMART ANIMATION LOOP
+    // 9. 60FPS CAPPED SMART ANIMATION LOOP
     let animationFrameId: number;
-    let lastRenderTime = performance.now();
+    let lastRenderTime = 0;
     let lastDeltaTime = performance.now();
     const TARGET_FPS_INTERVAL = 1000 / 60; // 60 FPS cap
 
     const animate = (now: number) => {
       animationFrameId = requestAnimationFrame(animate);
 
-      // Skip frames if tab hidden, element offscreen, or modal overlay active
-      if (!isTabVisible || !isIntersecting || isPausedRef.current) {
+      // Skip GPU render when tab is completely hidden
+      if (!isTabVisible) {
         lastDeltaTime = now;
         return;
       }
@@ -596,16 +626,18 @@ export function SceneCanvas({
       const delta = Math.min((now - lastDeltaTime) / 1000, 0.1);
       lastDeltaTime = now;
 
-      // Update animated props (steam, cassette, ID card & holographic ASCII sphere)
-      coffee.updateSteam(delta);
-      cassette.updateDeck(delta, sound.getEnabled());
-      idCard.updateCard(delta);
-      hologram.updateHolo(delta);
+      // Update animated props when not paused by active modal
+      if (!isPausedRef.current) {
+        coffee.updateSteam(delta);
+        cassette.updateDeck(delta, sound.getEnabled());
+        idCard.updateCard(delta);
+        hologram.updateHolo(delta);
 
-      // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
-      currentCamDist += (targetCamDist - currentCamDist) * 0.10;
-      currentAzimuth += (targetAzimuth - currentAzimuth) * 0.09;
-      currentElevation += (targetElevation - currentElevation) * 0.09;
+        // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
+        currentCamDist += (targetCamDist - currentCamDist) * 0.10;
+        currentAzimuth += (targetAzimuth - currentAzimuth) * 0.09;
+        currentElevation += (targetElevation - currentElevation) * 0.09;
+      }
 
       const camX =
         lookTarget.x +
@@ -625,17 +657,19 @@ export function SceneCanvas({
 
     animate(performance.now());
 
-    // 9. THOROUGH CLEANUP TO PREVENT FAST-REFRESH VRAM / CONTEXT LEAKS
+    // 10. THOROUGH CLEANUP TO PREVENT FAST-REFRESH VRAM / CONTEXT LEAKS
     return () => {
       cancelAnimationFrame(animationFrameId);
-      observer.disconnect();
+      if (resizeObserver) resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", handleWindowResize);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerdown", handlePointerDown);
       container.removeEventListener("pointerup", handlePointerUp);
       container.removeEventListener("pointercancel", handlePointerUp);
       container.removeEventListener("wheel", handleWheel);
+      canvasElement.removeEventListener("webglcontextlost", handleContextLost);
+      canvasElement.removeEventListener("webglcontextrestored", handleContextRestored);
 
       // Deep recursive disposal of geometries, materials, and textures
       scene.traverse((obj) => {
