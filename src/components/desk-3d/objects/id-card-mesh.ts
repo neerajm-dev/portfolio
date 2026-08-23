@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WorkstationTheme, DEFAULT_THEME, createTintedAvatarCanvas } from "@/lib/theme-colors";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 const MATRIX_CHARS = "0123456789ABCDEF$#%&*@!Ø§µΩΔΨXYZ";
 
@@ -129,7 +130,7 @@ export function createIdCardMesh(): {
     const fields = [
       ["NAME  :", "NEERAJ M"],
       ["ROLE  :", "DEVELOPER / BUILDER"],
-      ["AGE   :", "19"],
+      ["AGE   :", String(DEVELOPER_PROFILE.age)],
       ["BASE  :", "KOLLAM, KERALA"],
       ["STUDY :", "BCA @ SNCT"],
       ["EXPIRY:", currentExpiryCode],
@@ -315,7 +316,7 @@ export function createIdCardMesh(): {
     bctx.font = "15px monospace";
     bctx.fillText("• GITHUB: @neerajm-dev", 36, 328);
     bctx.fillText("• INSTA:  @neerajm_dev", 36, 352);
-    bctx.fillText("• EMAIL:  neerajm2k7@gmail.com", 36, 376);
+    bctx.fillText("• EMAIL:  hi.neerajm@gmail.com", 36, 376);
 
     // QR Code Box (Right Side)
     const qrX = 650;
@@ -487,7 +488,7 @@ export function createIdCardMesh(): {
 
   const updateCard = (delta: number) => {
     matrixTimer += delta;
-    if (matrixTimer > 0.09) {
+    if (matrixTimer > 1.2) {
       matrixTimer = 0;
       currentExpiryCode = getRandomMatrixCode();
       renderFrontCard(currentThemeHex);

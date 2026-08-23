@@ -1,8 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, JetBrains_Mono, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
+};
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -26,7 +35,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://neerajm.vercel.app"),
   title: "Neeraj M // Solo Systems Architect & Full-Stack Engineer",
   description:
-    "Personal developer portfolio of Neeraj M (19yo Systems Architect & Full-Stack Builder). Creator of KTCC Platform, Next.js 15, Android Hybrid Engines, and $0 Cloud Infrastructure.",
+    `Personal developer portfolio of Neeraj M (${DEVELOPER_PROFILE.age}yo Systems Architect & Full-Stack Builder). Creator of KTCC Platform, Next.js 15, Android Hybrid Engines, and $0 Cloud Infrastructure.`,
   keywords: [
     "Neeraj M",
     "Systems Architect",

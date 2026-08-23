@@ -1,23 +1,41 @@
 import { Project, StackCategory, SocialLink } from "@/types";
 
+export const DEVELOPER_DOB = "2007-06-22"; // 22 June 2007
+
+export function calculateAge(dobStr: string = DEVELOPER_DOB): number {
+  const birthDate = new Date(dobStr);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export const DEVELOPER_AGE = calculateAge();
+
 export const DEVELOPER_PROFILE = {
   name: "Neeraj M",
   handle: "neerajm-dev",
   title: "Solo Architect & Systems Engineer",
-  age: 19,
+  dob: DEVELOPER_DOB,
+  age: DEVELOPER_AGE,
   education: "Pursuing BCA @ SNCT (Kerala, India)",
   location: "Kerala, India 🇮🇳",
   status: "AVAILABLE FOR BUILDS",
-  email: "neerajm2k7@gmail.com",
+  email: "hi.neerajm@gmail.com",
   socials: {
     instagram: "https://instagram.com/neerajm_dev",
     github: "https://github.com/neerajm-dev",
-    email: "mailto:neerajm2k7@gmail.com",
+    email: "mailto:hi.neerajm@gmail.com",
+    kofi: "https://ko-fi.com/neerajm",
+    upi: "neerajm2k7@okaxis",
   },
   flagshipUrl: "https://ktccofficial.vercel.app",
   portfolioUrl: "https://neerajm.vercel.app",
   customDomain: "https://neerajm.in",
-  bio: "19-year-old solo systems architect building high-velocity Android engines, real-time tournament backends, and full-stack cloud platforms engineered with zero ongoing infrastructure expenses ($0.00/mo).",
+  bio: `${DEVELOPER_AGE}-year-old solo systems architect building high-velocity Android engines, real-time tournament backends, and full-stack cloud platforms engineered with zero ongoing infrastructure expenses ($0.00/mo).`,
   stats: [
     { label: "Cloud Infra Cost", value: "$0.00/mo", sub: "100% Free Tiers Forever" },
     { label: "APAC P99 Latency", value: "< 18ms", sub: "Cloudflare Edge + Vercel" },
@@ -109,8 +127,8 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: "Email",
-    handle: "neerajm2k7@gmail.com",
-    url: "mailto:neerajm2k7@gmail.com",
+    handle: "hi.neerajm@gmail.com",
+    url: "mailto:hi.neerajm@gmail.com",
     icon: "Mail",
     badge: "Direct Contact",
   },
@@ -136,7 +154,7 @@ export const TERMINAL_COMMANDS = {
 
   whoami: `NEERAJ M | SOLO ARCHITECT & SYSTEMS ENGINEER
 ------------------------------------------------------
-Age:        19 years old
+Age:        ${DEVELOPER_AGE} years old
 Location:   Kerala, India 🇮🇳
 Education:  BCA Student @ SNCT
 Focus:      Full-Stack Android & Cloud Platforms
@@ -174,8 +192,17 @@ Key Feat:   • Double-entry ledger prevents points race conditions
 ------------------------------------------------------
 • Instagram:  https://instagram.com/neerajm_dev  (@neerajm_dev)
 • GitHub:     https://github.com/neerajm-dev     (neerajm-dev / Neeraj M)
-• Email:      neerajm2k7@gmail.com
+• Ko-fi:      https://ko-fi.com/neerajm
+• UPI:        neerajm2k7@okaxis
+• Email:      hi.neerajm@gmail.com
 • Live App:   https://ktccofficial.vercel.app`,
+
+  coffee: `☕ FUEL THE ARCHITECT // SPONSORSHIP:
+------------------------------------------------------
+• Ko-fi:       https://ko-fi.com/neerajm
+• UPI ID:      neerajm2k7@okaxis
+• Cloud Ethos: $0.00/mo serverless stack, fueled by caffeine.
+• Hire / Work: hi.neerajm@gmail.com`,
 
   challenge: `ONAM VACATION BUILD-IN-PUBLIC CHALLENGE 🌴🚀
 ------------------------------------------------------

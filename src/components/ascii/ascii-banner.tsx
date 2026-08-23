@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { sound } from "@/lib/sound";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 export function AsciiBanner() {
   const [time, setTime] = useState("");
@@ -52,7 +53,7 @@ export function AsciiBanner() {
             &gt; SOLO SYSTEMS ARCHITECT // FULL-STACK &amp; $0 INFRASTRUCTURE
           </div>
           <div className="mt-1 text-xs text-[#00ff66]/70 max-w-xl font-mono leading-relaxed">
-            19yo Developer • BCA @ SNCT • Creator of KTCC Platform • Multi-Platform Android &amp; Next.js 15
+            {DEVELOPER_PROFILE.age}yo Developer • BCA @ SNCT • Creator of KTCC Platform • Multi-Platform Android &amp; Next.js 15
           </div>
         </div>
 

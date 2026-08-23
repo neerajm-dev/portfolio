@@ -82,9 +82,9 @@ export function createPhoneMesh(): {
 
   const phoneGeo = new THREE.ExtrudeGeometry(phoneShape, extrudeSettings);
   const chassisMat = new THREE.MeshStandardMaterial({
-    color: 0x06090e,
-    roughness: 0.35,
-    metalness: 0.85,
+    color: 0x0c131d,
+    roughness: 0.28,
+    metalness: 0.88,
   });
 
   const phoneMesh = new THREE.Mesh(phoneGeo, chassisMat);

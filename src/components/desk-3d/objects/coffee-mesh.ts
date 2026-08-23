@@ -1,15 +1,22 @@
 import * as THREE from "three";
 import { WorkstationTheme, DEFAULT_THEME, createTintedAvatarCanvas } from "@/lib/theme-colors";
 
-export function createCoffeeMesh(): {
+export function createCoffeeMesh(initialLevel = 100): {
   group: THREE.Group;
   mugMesh: THREE.Mesh;
   updateSteam: (delta: number) => void;
   setTheme: (theme: WorkstationTheme) => void;
+  setCoffeeLevel: (percentage: number, instant?: boolean) => void;
+  triggerSipAnimation: () => void;
 } {
   const group = new THREE.Group();
   group.name = "coffee-prop";
   group.position.set(4.4, 0, 0.4);
+
+  // Group containing the mug and its contents (which will lift up during sips)
+  const mugAssembly = new THREE.Group();
+  mugAssembly.name = "mug-assembly";
+  group.add(mugAssembly);
 
   // 1. PROCEDURAL CANVAS TEXTURE FOR MUG WRAP (WITH AVATAR & DEV BRANDING)
   const canvas = document.createElement("canvas");
@@ -77,7 +84,7 @@ export function createCoffeeMesh(): {
     renderMugTexture(DEFAULT_THEME.hex);
   };
 
-  // 2. SMART CHARGING COASTER WITH ILLUMINATED LED RING
+  // 2. SMART CHARGING COASTER WITH ILLUMINATED LED RING (Stays on desk)
   const coasterGeo = new THREE.CylinderGeometry(0.50, 0.54, 0.024, 32);
   const coasterMat = new THREE.MeshStandardMaterial({
     color: 0x06090e,
@@ -100,13 +107,13 @@ export function createCoffeeMesh(): {
   ring.position.y = 0.026;
   group.add(ring);
 
-  // 3. SCULPTED CERAMIC MUG BODY
+  // 3. SCULPTED CERAMIC MUG BODY (EXTERIOR ONLY WITH AVATAR PRINT)
   const mugGeo = new THREE.CylinderGeometry(0.38, 0.33, 0.76, 32, 1, true);
   const mugMat = new THREE.MeshStandardMaterial({
     map: mugTexture,
     roughness: 0.35,
     metalness: 0.25,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
   });
 
   const mugMesh = new THREE.Mesh(mugGeo, mugMat);
@@ -115,31 +122,46 @@ export function createCoffeeMesh(): {
   mugMesh.castShadow = true;
   mugMesh.receiveShadow = true;
   mugMesh.userData = { id: "coffee", interactive: true };
-  group.add(mugMesh);
+  mugAssembly.add(mugMesh);
 
-  // Ceramic Bottom Base Cap
-  const bottomGeo = new THREE.CircleGeometry(0.33, 32);
   const ceramicPlainMat = new THREE.MeshStandardMaterial({
     color: 0x080c14,
     roughness: 0.5,
     metalness: 0.3,
   });
+
+  // Clean Plain Ceramic Interior Wall (No avatar print inside cup)
+  const innerGeo = new THREE.CylinderGeometry(0.33, 0.28, 0.76, 32, 1, true);
+  const innerPlainMat = new THREE.MeshStandardMaterial({
+    color: 0x070b12,
+    roughness: 0.55,
+    metalness: 0.25,
+    side: THREE.BackSide,
+  });
+  const innerMesh = new THREE.Mesh(innerGeo, innerPlainMat);
+  innerMesh.position.y = 0.40;
+  innerMesh.rotation.y = -0.75;
+  mugAssembly.add(innerMesh);
+
+  // Ceramic Bottom Base Cap
+  const bottomGeo = new THREE.CircleGeometry(0.33, 32);
   const bottomMesh = new THREE.Mesh(bottomGeo, ceramicPlainMat);
   bottomMesh.position.y = 0.02;
   bottomMesh.rotation.x = Math.PI / 2;
-  group.add(bottomMesh);
+  mugAssembly.add(bottomMesh);
 
   // Ceramic Top Lip Rim
   const lipGeo = new THREE.RingGeometry(0.33, 0.38, 32);
   const lipMesh = new THREE.Mesh(lipGeo, ceramicPlainMat);
   lipMesh.position.y = 0.78;
   lipMesh.rotation.x = -Math.PI / 2;
-  group.add(lipMesh);
+  mugAssembly.add(lipMesh);
 
-  // 4. ERGONOMIC MUG D-HANDLE
-  const handleGeo = new THREE.TorusGeometry(0.24, 0.042, 10, 24, Math.PI * 0.95);
+  // 4. ERGONOMIC MUG D-HANDLE (Seamlessly embedded into ceramic wall without poking interior)
+  const handleArc = Math.PI * 1.0;
+  const handleGeo = new THREE.TorusGeometry(0.22, 0.038, 16, 32, handleArc);
   const handle = new THREE.Mesh(handleGeo, ceramicPlainMat);
-  handle.position.set(0.36, 0, 0);
+  handle.position.set(0.325, 0, 0);
   handle.rotation.z = -Math.PI / 2;
   mugMesh.add(handle);
 
@@ -199,15 +221,22 @@ export function createCoffeeMesh(): {
 
   renderLiquid(DEFAULT_THEME.hex);
 
+  let targetLevel = Math.max(0, Math.min(100, initialLevel));
+  let currentLevel = targetLevel;
+  let currentY = 0.08 + (targetLevel / 100) * (0.70 - 0.08);
+  const initialRadiusScale = 0.85 + (currentLevel / 100) * 0.15;
+
   const liquidGeo = new THREE.CircleGeometry(0.33, 32);
   const liquidMat = new THREE.MeshBasicMaterial({
     map: liquidTexture,
     toneMapped: false,
   });
   const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-  liquid.position.set(0, 0.70, 0);
+  liquid.position.set(0, currentY, 0);
+  liquid.scale.set(initialRadiusScale, initialRadiusScale, 1);
   liquid.rotation.x = -Math.PI / 2;
-  group.add(liquid);
+  liquid.visible = currentLevel > 2;
+  mugAssembly.add(liquid);
 
   // 6. STEAM SYSTEM
   const smokeCanvas = document.createElement("canvas");
@@ -242,7 +271,7 @@ export function createCoffeeMesh(): {
   }[] = [];
 
   const steamGroup = new THREE.Group();
-  group.add(steamGroup);
+  mugAssembly.add(steamGroup);
 
   const spriteMat = new THREE.SpriteMaterial({
     map: smokeTexture,
@@ -271,16 +300,70 @@ export function createCoffeeMesh(): {
     puffs.push({ sprite, speed, phase, swayRadius, baseScale });
   }
 
+  const setCoffeeLevel = (percentage: number, instant = false) => {
+    targetLevel = Math.max(0, Math.min(100, percentage));
+    if (instant) {
+      currentLevel = targetLevel;
+      currentY = 0.08 + (currentLevel / 100) * (0.70 - 0.08);
+      const radiusScale = 0.85 + (currentLevel / 100) * 0.15;
+      liquid.position.y = currentY;
+      liquid.scale.set(radiusScale, radiusScale, 1);
+      liquid.visible = currentLevel > 2;
+    }
+  };
+
   let steamTime = 0;
+  let isSipping = false;
+  let sipTimer = 0;
+  const SIP_DURATION = 0.82; // seconds
+
+  const triggerSipAnimation = () => {
+    isSipping = true;
+    sipTimer = 0;
+  };
+
   const updateSteam = (delta: number) => {
     steamTime += delta;
+
+    // Smooth procedural 3D sip lift animation
+    if (isSipping) {
+      sipTimer += delta;
+      const p = Math.min(1, sipTimer / SIP_DURATION);
+      // Smooth sine arc 0 -> 1 -> 0
+      const arc = Math.sin(p * Math.PI);
+      const tiltArc = Math.sin(Math.pow(p, 0.85) * Math.PI);
+
+      mugAssembly.position.y = arc * 1.30;
+      mugAssembly.position.z = arc * 1.35;
+      mugAssembly.position.x = -arc * 0.65;
+      mugAssembly.rotation.x = -tiltArc * 0.32;
+      mugAssembly.rotation.z = tiltArc * 0.12;
+
+      if (p >= 1) {
+        isSipping = false;
+        mugAssembly.position.set(0, 0, 0);
+        mugAssembly.rotation.set(0, 0, 0);
+      }
+    }
+
+    // Smoothly animate liquid surface dropping
+    currentLevel = THREE.MathUtils.lerp(currentLevel, targetLevel, 0.12);
+    const targetY = 0.08 + (currentLevel / 100) * (0.70 - 0.08);
+    currentY = THREE.MathUtils.lerp(currentY, targetY, 0.12);
+
+    const radiusScale = 0.85 + (currentLevel / 100) * 0.15;
+    liquid.position.y = currentY;
+    liquid.scale.set(radiusScale, radiusScale, 1);
+    liquid.visible = currentLevel > 2;
+
+    const steamFactor = currentLevel / 100;
 
     puffs.forEach((puff) => {
       puff.sprite.position.y += puff.speed * delta;
 
       const progress = Math.min(
         1,
-        Math.max(0, (puff.sprite.position.y - 0.72) / (2.1 - 0.72))
+        Math.max(0, (puff.sprite.position.y - currentY) / (2.1 - currentY))
       );
 
       const currentScale = puff.baseScale * (1 + progress * 1.3);
@@ -288,7 +371,7 @@ export function createCoffeeMesh(): {
 
       const alphaEnvelope = Math.sin(progress * Math.PI);
       (puff.sprite.material as THREE.SpriteMaterial).opacity =
-        alphaEnvelope * 0.18;
+        alphaEnvelope * 0.18 * steamFactor;
 
       const swayX =
         Math.sin(steamTime * 1.4 + puff.phase) *
@@ -303,7 +386,7 @@ export function createCoffeeMesh(): {
       puff.sprite.position.z = swayZ;
 
       if (puff.sprite.position.y > 2.1) {
-        puff.sprite.position.y = 0.72 + Math.random() * 0.04;
+        puff.sprite.position.y = currentY + Math.random() * 0.04;
         puff.phase = Math.random() * Math.PI * 2;
       }
     });
@@ -316,5 +399,6 @@ export function createCoffeeMesh(): {
     renderSmoke(theme.hex);
   };
 
-  return { group, mugMesh, updateSteam, setTheme };
+  return { group, mugMesh, updateSteam, setTheme, setCoffeeLevel, triggerSipAnimation };
 }
+

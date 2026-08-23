@@ -15,10 +15,12 @@ import { CoffeeMugProp } from "./props/coffee-mug-prop";
 import { AsciiIdCard } from "@/components/ascii/ascii-id-card";
 import { KtccModal } from "./modals/ktcc-modal";
 import { NotesModal } from "./modals/notes-modal";
+import { CoffeeModal } from "./modals/coffee-modal";
 import { FullscreenTerminalModal } from "./modals/fullscreen-terminal-modal";
 import { Volume2, VolumeX, X, HelpCircle } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
-type ModalType = "none" | "id-card" | "phone" | "laptop-modal" | "sticky-note";
+type ModalType = "none" | "id-card" | "phone" | "laptop-modal" | "sticky-note" | "coffee";
 
 export function DeveloperDesk() {
   const [activeModal, setActiveModal] = useState<ModalType>("none");
@@ -99,7 +101,7 @@ export function DeveloperDesk() {
           </span>
           <span className="hidden sm:inline text-[#00ff66]/40">|</span>
           <span className="hidden sm:inline text-[#00ff66]/60 text-[9px] sm:text-[10px]">
-            SOLO SYSTEMS ARCHITECT (19YO)
+            SOLO SYSTEMS ARCHITECT ({DEVELOPER_PROFILE.age}YO)
           </span>
         </div>
 
@@ -159,7 +161,7 @@ export function DeveloperDesk() {
               <PhoneProp onSelect={() => setActiveModal("phone")} />
               <div className="flex items-center gap-3">
                 <AudioDeckProp />
-                <CoffeeMugProp />
+                <CoffeeMugProp onSelect={() => setActiveModal("coffee")} />
               </div>
             </div>
           </div>
@@ -206,6 +208,15 @@ export function DeveloperDesk() {
           >
             [4] 📝 NOTES
           </button>
+          <button
+            onClick={() => {
+              sound.playSuccess();
+              setActiveModal("coffee");
+            }}
+            className="px-2 py-0.5 border border-[#00ff66]/40 hover:border-[#00ff66] hover:bg-[#00ff66]/15 rounded-[3px] font-bold transition-all cursor-pointer text-[#00ff66]"
+          >
+            [5] ☕ SPONSOR
+          </button>
         </div>
 
         <div className="text-[#00ff66]/70 flex items-center gap-2">
@@ -241,6 +252,7 @@ export function DeveloperDesk() {
               {activeModal === "id-card" && <AsciiIdCard />}
               {activeModal === "phone" && <KtccModal onClose={closeModal} />}
               {activeModal === "sticky-note" && <NotesModal onClose={closeModal} />}
+              {activeModal === "coffee" && <CoffeeModal onClose={closeModal} />}
               {activeModal === "laptop-modal" && (
                 <FullscreenTerminalModal onClose={closeModal} />
               )}

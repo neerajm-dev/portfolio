@@ -11,7 +11,7 @@ export function IslandComms() {
 
   const handleCopy = (e: React.MouseEvent) => {
     sound.playSuccess();
-    navigator.clipboard.writeText("neerajm2k7@gmail.com");
+    navigator.clipboard.writeText("hi.neerajm@gmail.com");
     setCopied(true);
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -57,7 +57,7 @@ export function IslandComms() {
           className="w-full p-3 rounded-xl bg-[#00f0ff]/15 hover:bg-[#00f0ff]/25 border border-[#00f0ff]/40 text-[#00f0ff] text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer shadow-lg"
         >
           {copied ? <Check className="w-4 h-4 text-[#10b981]" /> : <Copy className="w-4 h-4" />}
-          <span>{copied ? "EMAIL COPIED TO CLIPBOARD!" : "$ COPY neerajm2k7@gmail.com"}</span>
+          <span>{copied ? "EMAIL COPIED TO CLIPBOARD!" : "$ COPY hi.neerajm@gmail.com"}</span>
         </button>
 
         <div className="grid grid-cols-2 gap-2">

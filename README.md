@@ -94,6 +94,6 @@ This project is licensed under a custom **MIT License with Non-Commercial & Bran
 
 **Built with relentless craft by [Neeraj M](https://github.com/neerajm-dev)**  
 *BCA @ Sree Narayana College of Technology, Kollam, Kerala*  
-`neerajm2k7@gmail.com` • [@neerajm_dev](https://instagram.com/neerajm_dev)
+`hi.neerajm@gmail.com` • [@neerajm_dev](https://instagram.com/neerajm_dev)
 
 </div>

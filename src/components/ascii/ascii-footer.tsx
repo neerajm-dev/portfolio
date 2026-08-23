@@ -8,7 +8,7 @@ export function AsciiFooter() {
 
   const handleCopy = () => {
     sound.playSuccess();
-    navigator.clipboard.writeText("neerajm2k7@gmail.com");
+    navigator.clipboard.writeText("hi.neerajm@gmail.com");
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -30,7 +30,7 @@ export function AsciiFooter() {
             onMouseEnter={() => sound.playHover()}
             className="w-full p-3 border border-[#00ff66] hover:bg-[#00ff66]/20 font-bold text-center transition-all cursor-pointer text-xs"
           >
-            {copied ? "[ ✓ ] EMAIL COPIED: neerajm2k7@gmail.com" : "[ $ COPY EMAIL: neerajm2k7@gmail.com ]"}
+            {copied ? "[ ✓ ] EMAIL COPIED: hi.neerajm@gmail.com" : "[ $ COPY EMAIL: hi.neerajm@gmail.com ]"}
           </button>
         </div>
 

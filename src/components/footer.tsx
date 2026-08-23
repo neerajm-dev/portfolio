@@ -10,7 +10,7 @@ export function Footer() {
 
   const handleCopyEmail = () => {
     sound.playSuccess();
-    navigator.clipboard.writeText("neerajm2k7@gmail.com");
+    navigator.clipboard.writeText("hi.neerajm@gmail.com");
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -59,7 +59,7 @@ export function Footer() {
               className="px-3 py-2 rounded-xl bg-[#0d1117] hover:bg-white/10 border border-[#00f0ff]/30 text-[#00f0ff] text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-lg"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-[#10b981]" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? "COPIED!" : "neerajm2k7@gmail.com"}</span>
+              <span>{copied ? "COPIED!" : "hi.neerajm@gmail.com"}</span>
             </button>
 
             <a

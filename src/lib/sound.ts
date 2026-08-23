@@ -160,6 +160,93 @@ class SoundEngine {
     osc.start(t);
     osc.stop(t + 0.18);
   }
+
+  // 6. Procedural Liquid Coffee Sip & Gulp (100% Web Audio Synthesized)
+  public playSip() {
+    if (!this.isEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+
+    try {
+      // Layer 1: Filtered Noise Sweep (Liquid Inhale / Slurp)
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.32);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      const bandpass = this.ctx.createBiquadFilter();
+      bandpass.type = "bandpass";
+      bandpass.Q.setValueAtTime(3.2, t);
+      bandpass.frequency.setValueAtTime(600, t);
+      bandpass.frequency.exponentialRampToValueAtTime(2600, t + 0.28);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, t);
+      noiseGain.gain.linearRampToValueAtTime(0.15, t + 0.05);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
+
+      noiseSource.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+
+      noiseSource.start(t);
+      noiseSource.stop(t + 0.32);
+
+      // Layer 2: Resonant Throat / Ceramic Swallow Gulp
+      const gulpOsc = this.ctx.createOscillator();
+      const gulpGain = this.ctx.createGain();
+
+      gulpOsc.type = "sine";
+      gulpOsc.frequency.setValueAtTime(300, t + 0.16);
+      gulpOsc.frequency.exponentialRampToValueAtTime(130, t + 0.30);
+
+      gulpGain.gain.setValueAtTime(0.001, t);
+      gulpGain.gain.setValueAtTime(0.001, t + 0.16);
+      gulpGain.gain.linearRampToValueAtTime(0.12, t + 0.20);
+      gulpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+
+      gulpOsc.connect(gulpGain);
+      gulpGain.connect(this.ctx.destination);
+
+      gulpOsc.start(t + 0.16);
+      gulpOsc.stop(t + 0.32);
+    } catch {
+      // Fallback simple click if noise buffer fails on unsupported envs
+      this.playClick(0.9);
+    }
+  }
+
+  // 7. Ceramic Clink / Empty Mug Tap
+  public playClink() {
+    if (!this.isEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(1600, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.08);
+
+    gain.gain.setValueAtTime(0.14, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
 }
+
 
 export const sound = new SoundEngine();

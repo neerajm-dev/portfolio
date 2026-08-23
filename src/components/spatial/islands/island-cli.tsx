@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { sound } from "@/lib/sound";
 import { Terminal, CornerDownLeft, Trash2 } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface LogEntry {
   id: string;
@@ -55,7 +56,7 @@ export function IslandCli() {
           type: "output",
           content: (
             <div className="text-xs space-y-1 text-gray-300">
-              <div className="text-[#00f0ff] font-bold">Neeraj M (19yo Systems Architect)</div>
+              <div className="text-[#00f0ff] font-bold">Neeraj M ({DEVELOPER_PROFILE.age}yo Systems Architect)</div>
               <div>BCA @ Sree Narayana College of Technology, Kollam</div>
               <div className="text-[#10b981]">&quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;</div>
             </div>

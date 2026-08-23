@@ -18,6 +18,11 @@ export function createDeskSurface(): THREE.Group {
   tableShape.lineTo(thw, -thd + tCut);
   tableShape.lineTo(thw, thd - tCut);
   tableShape.lineTo(thw - tCut, thd);
+  // Ergonomic Cockpit Cut-in on Front Edge (Facing Operator)
+  tableShape.lineTo(3.4, thd);
+  tableShape.lineTo(2.4, thd - 0.75);
+  tableShape.lineTo(-2.4, thd - 0.75);
+  tableShape.lineTo(-3.4, thd);
   tableShape.lineTo(-thw + tCut, thd);
   tableShape.lineTo(-thw, thd - tCut);
   tableShape.lineTo(-thw, -thd + tCut);
@@ -33,9 +38,9 @@ export function createDeskSurface(): THREE.Group {
 
   const tableGeo = new THREE.ExtrudeGeometry(tableShape, tableExtrudeSettings);
   const tableMat = new THREE.MeshStandardMaterial({
-    color: 0x05080c,
-    roughness: 0.85,
-    metalness: 0.15,
+    color: 0x070c14,
+    roughness: 0.75,
+    metalness: 0.28,
   });
   const tableMesh = new THREE.Mesh(tableGeo, tableMat);
   tableMesh.rotation.x = Math.PI / 2;
@@ -69,6 +74,11 @@ export function createDeskSurface(): THREE.Group {
   padShape.lineTo(phw, -phd + pCut);
   padShape.lineTo(phw, phd - pCut);
   padShape.lineTo(phw - pCut, phd);
+  // Matching Ergonomic Front Pad Contour
+  padShape.lineTo(3.2, phd);
+  padShape.lineTo(2.2, phd - 0.65);
+  padShape.lineTo(-2.2, phd - 0.65);
+  padShape.lineTo(-3.2, phd);
   padShape.lineTo(-phw + pCut, phd);
   padShape.lineTo(-phw, phd - pCut);
   padShape.lineTo(-phw, -phd + pCut);
@@ -84,8 +94,9 @@ export function createDeskSurface(): THREE.Group {
 
   const padGeo = new THREE.ExtrudeGeometry(padShape, padExtrudeSettings);
   const padMat = new THREE.MeshStandardMaterial({
-    color: 0x030508,
-    roughness: 0.9,
+    color: 0x050a11,
+    roughness: 0.82,
+    metalness: 0.2,
   });
   const padMesh = new THREE.Mesh(padGeo, padMat);
   padMesh.rotation.x = Math.PI / 2;
@@ -107,7 +118,7 @@ export function createDeskSurface(): THREE.Group {
 
   // 3. Ambient Grid Lines on Desk Surface (Bounded within pad interior)
   const gridW = 12.0;
-  const gridD = 6.0;
+  const gridD = 5.2;
   const step = 0.5;
   const gridPositions: number[] = [];
 

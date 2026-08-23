@@ -39,3 +39,10 @@ h1, h2, h3, h4, h5, h6, pre, code, button, input, p, div, span, a {
   background: #00ff66;
   color: #000000;
 }
+
+/* Custom Futuristic Cursor Override on Desktop */
+@media (pointer: fine) {
+  html, body, canvas, button, a, [role="button"], .cursor-pointer {
+    cursor: none !important;
+  }
+}

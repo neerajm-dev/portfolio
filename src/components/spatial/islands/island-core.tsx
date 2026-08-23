@@ -4,6 +4,7 @@ import { MatrixAvatar } from "@/components/ui/matrix-avatar";
 import { DecodeText } from "@/components/ui/decode-text";
 import { sound } from "@/lib/sound";
 import { Terminal, Layers, Database, Cloud, Mail, Zap, ShieldCheck } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface IslandCoreProps {
   onWarpTo: (target: string) => void;
@@ -36,7 +37,7 @@ export function IslandCore({ onWarpTo }: IslandCoreProps) {
 
       {/* Description */}
       <p className="text-gray-300 text-xs mt-3 leading-relaxed font-mono">
-        <DecodeText text="19yo Systems Builder • BCA @ SNCT • Full-Stack Android & Cloud Platforms • $0 Infrastructure Architect." speed={18} />
+        <DecodeText text={`${DEVELOPER_PROFILE.age}yo Systems Builder • BCA @ SNCT • Full-Stack Android & Cloud Platforms • $0 Infrastructure Architect.`} speed={18} />
       </p>
 
       {/* Quick Navigation Warps */}

@@ -8,13 +8,16 @@ import { SceneCanvas, InteractivePropId } from "./scene-canvas";
 import { AsciiIdCard } from "@/components/ascii/ascii-id-card";
 import { KtccModal } from "@/components/desk/modals/ktcc-modal";
 import { NotesModal } from "@/components/desk/modals/notes-modal";
+import { CoffeeModal } from "@/components/desk/modals/coffee-modal";
 
-import { Volume2, VolumeX, X, HelpCircle, Terminal, CornerDownLeft, Sparkles, RotateCcw, Palette } from "lucide-react";
+import { Volume2, VolumeX, X, HelpCircle, Terminal, CornerDownLeft, Sparkles, RotateCcw, Palette, Smartphone, Keyboard } from "lucide-react";
+import { CustomCursor } from "@/components/ui/custom-cursor";
 import { WORKSTATION_THEMES, WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
-type ModalType = "none" | "id-card" | "phone" | "sticky-note";
+type ModalType = "none" | "id-card" | "phone" | "sticky-note" | "coffee";
 
-const QUICK_COMMANDS = ["help", "whoami", "ktcc", "brotoraise", "stack", "socials", "color", "reset", "clear"];
+const QUICK_COMMANDS = ["help", "whoami", "ktcc", "coffee", "brotoraise", "stack", "socials", "color", "reset", "clear"];
 
 const buildColorPickerLines = (selectedIndex: number, currentActiveId: string): string[] => {
   const lines = [
@@ -36,26 +39,135 @@ const buildColorPickerLines = (selectedIndex: number, currentActiveId: string): 
   return lines;
 };
 
+const EMPTY_TAP_MESSAGES = [
+  "Tryna steal the cup now or what?",
+  "Bro. It's still empty.",
+  "Wasn't one whole cup enough for ya?",
+  "Tapping harder won't make coffee materialize.",
+  "Nice try. Settle the tab or check out KTCC! ☕😂",
+];
+
+const THEFT_UNRESOLVED_MESSAGES = [
+  "You stole my coffee and left. We need to talk.",
+  "Coffee: stolen. Debt: unpaid. Incident: logged.",
+  "Left the crime scene without paying. Operating on pure spite now. ☕💀",
+  "Cold. Didn't even leave a single rupee for the beans.",
+];
+
+const REFILL_CONFIRMED_MESSAGES = [
+  "Alright. We're cool. ☕",
+  "Debt settled. Coffee restored. Back to work. ☕",
+  "Coffee's back. Crisis averted.",
+];
+
 export function DeveloperDesk3D() {
   const [activeModal, setActiveModal] = useState<ModalType>("none");
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+  const [helpTab, setHelpTab] = useState<"touch" | "desktop">("desktop");
   const [input, setInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [caffeine, setCaffeine] = useState(99);
+  const [caffeine, setCaffeine] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("neeraj_workstation_caffeine");
+        if (saved !== null) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed)) return parsed;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return 100;
+  });
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
   const [idCardFacing, setIdCardFacing] = useState<"front" | "back">("front");
   const [cameraResetCount, setCameraResetCount] = useState(0);
+  const [sipTriggerCount, setSipTriggerCount] = useState(0);
 
   const [activeTheme, setActiveTheme] = useState<WorkstationTheme>(DEFAULT_THEME);
   const [pickerMode, setPickerMode] = useState<"none" | "color">("none");
   const [pickerIndex, setPickerIndex] = useState(0);
+  const [showMobileInput, setShowMobileInput] = useState(false);
   const previousThemeRef = useRef<WorkstationTheme>(DEFAULT_THEME);
+  const hasDonatedOrInteractedRef = useRef(false);
+
+  const emptyTapIndexRef = useRef(0);
+  const theftExitIndexRef = useRef(0);
+  const refillIndexRef = useRef(0);
+
+  // Real-time FPS & Render Telemetry Sparkline
+  const [fps, setFps] = useState(60);
+  const [frameHistory, setFrameHistory] = useState<number[]>([
+    16.2, 16.5, 16.7, 16.6, 16.4, 16.8, 16.6, 16.5, 16.7, 16.6, 16.5, 16.6,
+  ]);
+
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let animId: number;
+
+    const loop = (now: number) => {
+      frameCount++;
+      const elapsed = now - lastTime;
+
+      if (elapsed >= 400) {
+        const currentFps = Math.min(120, Math.max(1, Math.round((frameCount * 1000) / elapsed)));
+        const frameTime = +(1000 / currentFps).toFixed(1);
+        setFps(currentFps);
+        frameCount = 0;
+        lastTime = now;
+
+        setFrameHistory((prev) => [...prev.slice(1), frameTime]);
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth < 768 || "ontouchstart" in window || navigator.maxTouchPoints > 0) {
+        setHelpTab("touch");
+      }
+
+      // Show the reload callout if caffeine was 0 in storage
+      try {
+        const saved = localStorage.getItem("neeraj_workstation_caffeine");
+        if (saved !== null) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed) && parsed <= 0) {
+            setTerminalLines([
+              "[BOOT] NEERAJ_OS v2.4 (x86_64-workstation)",
+              "[ALERT] UNRESOLVED CRIME DETECTED IN LOCAL STORAGE",
+              "[SYS] CAFFEINE: 0% // Nice try refreshing the page. The cup is still empty. ☕💀",
+            ]);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("neeraj_workstation_caffeine", String(caffeine));
+      } catch {
+        // ignore
+      }
+    }
+  }, [caffeine]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -125,16 +237,16 @@ export function DeveloperDesk3D() {
           setActiveTheme(matched);
           responseLine = `[OK] Theme accent changed to ${matched.name.toUpperCase()} (${matched.hex})`;
         } else {
-          responseLine = `[ERR] Unknown color: "${arg}". Available: green, cyan, amber, purple, red, ice. Or type 'color' for interactive menu.`;
+          responseLine = `[ERR] Unknown color: "${arg}". Available: ${WORKSTATION_THEMES.map((t) => t.id).join(", ")}. Or type 'color' for interactive menu.`;
         }
       }
     } else {
       switch (clean) {
         case "help":
-          responseLine = "[HELP] Commands: whoami, avatar, ktcc, brotoraise, stack, socials, color, reset, clear";
+          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, brotoraise, stack, socials, color, reset, clear";
           break;
         case "whoami":
-          responseLine = "[WHOAMI] Neeraj M (19yo) // BCA @ SNCT Kollam, Kerala";
+          responseLine = `[WHOAMI] Neeraj M (${DEVELOPER_PROFILE.age}yo) // BCA @ SNCT Kollam, Kerala`;
           break;
         case "avatar":
         case "neeraj":
@@ -144,6 +256,19 @@ export function DeveloperDesk3D() {
           responseLine = "[KTCC] Tournament platform // Double-entry SQL ledger // $0.00/mo";
           setActiveModal("phone");
           break;
+        case "coffee":
+        case "sponsor":
+        case "donate":
+        case "caffeine":
+        case "kofi":
+        case "upi":
+          responseLine = "[CAFFEINE] Dispensing sponsor & coffee channels (UPI & Ko-fi)...";
+          setActiveModal("coffee");
+          break;
+        case "refill":
+          setCaffeine(100);
+          responseLine = "[OK] Emergency barista protocol invoked. Caffeine restored to 100%! ☕✨";
+          break;
         case "brotoraise":
           responseLine = "[BROTORAISE] Complaint Management System // Next.js + Postgres";
           break;
@@ -151,7 +276,7 @@ export function DeveloperDesk3D() {
           responseLine = "[STACK] Vercel Hobby + Supabase ACID + Cloudflare R2 + GitHub Actions";
           break;
         case "socials":
-          responseLine = "[LINKS] GitHub: neerajm-dev | IG: @neerajm_dev | Mail: neerajm2k7@gmail.com";
+          responseLine = "[LINKS] GitHub: neerajm-dev | IG: @neerajm_dev | Ko-fi: neerajm | Mail: hi.neerajm@gmail.com";
           break;
         case "reset":
         case "home":
@@ -234,9 +359,10 @@ export function DeveloperDesk3D() {
           return;
         }
 
-        if (/^[1-6]$/.test(e.key)) {
+        const keyNum = parseInt(e.key, 10);
+        if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= WORKSTATION_THEMES.length) {
           e.preventDefault();
-          const nextIdx = parseInt(e.key, 10) - 1;
+          const nextIdx = keyNum - 1;
           setPickerIndex(nextIdx);
           const nextTheme = WORKSTATION_THEMES[nextIdx];
           setActiveTheme(nextTheme);
@@ -275,6 +401,49 @@ export function DeveloperDesk3D() {
           return;
         }
 
+        return;
+      }
+
+      // If typing inside our input element, let the input tag handle text input natively for virtual keyboards
+      if (document.activeElement === inputRef.current) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleCommand(input);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShowMobileInput(false);
+          inputRef.current?.blur();
+          setInput("");
+          sound.playClick();
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (commandHistory.length > 0) {
+            const nextIdx = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
+            setHistoryIndex(nextIdx);
+            setInput(commandHistory[nextIdx]);
+            sound.playHover();
+          }
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (historyIndex !== -1) {
+            const nextIdx = historyIndex + 1;
+            if (nextIdx >= commandHistory.length) {
+              setHistoryIndex(-1);
+              setInput("");
+            } else {
+              setHistoryIndex(nextIdx);
+              setInput(commandHistory[nextIdx]);
+            }
+            sound.playHover();
+          }
+          return;
+        }
         return;
       }
 
@@ -373,7 +542,12 @@ export function DeveloperDesk3D() {
         break;
       case "laptop":
         sound.playClick(1.5);
-        if (inputRef.current) inputRef.current.focus();
+        if (typeof window !== "undefined" && (window.innerWidth < 768 || "ontouchstart" in window || navigator.maxTouchPoints > 0)) {
+          setShowMobileInput(true);
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 60);
+        }
         break;
       case "phone":
         setActiveModal("phone");
@@ -385,19 +559,111 @@ export function DeveloperDesk3D() {
         const next = sound.toggle();
         setSoundEnabled(next);
         break;
-      case "coffee":
-        sound.playHover();
-        setCaffeine((prev) => (prev <= 15 ? 99 : prev - 20));
-        setTerminalLines((prev) => [
-          ...prev.slice(-5),
-          `[SYS] Caffeine consumed. Remaining: ${caffeine > 15 ? caffeine - 20 : 99}%`,
+      case "hologram":
+        sound.playNodePulse();
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [EVENT] HOLOGRAM: STARK_PROJECTION_TOGGLE`,
+          `[SYS] TOPOLOGY: FIBONACCI_SPHERE // 280 NODES // 3.6x ORBITAL_GRID`,
         ]);
         break;
+      case "coffee": {
+        if (caffeine <= 0) {
+          sound.playClink();
+          const emptyMsg = EMPTY_TAP_MESSAGES[emptyTapIndexRef.current % EMPTY_TAP_MESSAGES.length];
+          emptyTapIndexRef.current += 1;
+
+          setTerminalLines((lines) => [
+            ...lines.slice(-6),
+            `[neeraj@sys ~]$ [EVENT] DESK_SENSOR: EMPTY MUG TAPPED`,
+            `[SYS] CAFFEINE: 0% // ${emptyMsg}`,
+            `[SYS] REFILL: DENIED. 🪫`,
+          ]);
+
+          setTimeout(() => {
+            setActiveModal("coffee");
+          }, 320);
+          break;
+        }
+
+        // Active coffee present: Trigger procedural 3D lift animation and synthesized sip
+        sound.playSip();
+        setSipTriggerCount((prev) => prev + 1);
+
+        let nextLevel = 65;
+        let eventTag = "[EVENT] DESK_SENSOR: MUG SENSOR ACTIVE";
+        let sysMsg = "[SYS] CAFFEINE: 65% // Hey... that's my coffee.";
+        let shouldOpenModal = false;
+
+        if (caffeine > 65) {
+          nextLevel = 65;
+          eventTag = "[EVENT] DESK_SENSOR: MUG SENSOR ACTIVE";
+          sysMsg = "[SYS] CAFFEINE: 65% // Hey... that's my coffee.";
+        } else if (caffeine > 35) {
+          nextLevel = 35;
+          eventTag = "[EVENT] DESK_SENSOR: MUG SENSOR ACTIVE";
+          sysMsg = "[SYS] CAFFEINE: 35% // Seriously?";
+        } else if (caffeine > 12) {
+          nextLevel = 12;
+          eventTag = "[EVENT] DESK_SENSOR: MUG SENSOR ACTIVE";
+          sysMsg = "[SYS] CAFFEINE: 12% // You're really finishing the whole thing?";
+        } else {
+          nextLevel = 0;
+          eventTag = "[EVENT] DESK_SENSOR: MUG SENSOR ACTIVE";
+          sysMsg = "[SYS] CAFFEINE: 0% // THAT WAS MY COFFEE!! ☕";
+          shouldOpenModal = true;
+        }
+
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ ${eventTag}`,
+          sysMsg,
+        ]);
+
+        setCaffeine(nextLevel);
+        try {
+          localStorage.setItem("neeraj_workstation_caffeine", String(nextLevel));
+        } catch {
+          // ignore
+        }
+
+        if (shouldOpenModal) {
+          setTimeout(() => {
+            sound.playSuccess();
+            setActiveModal("coffee");
+          }, 950);
+        }
+        break;
+      }
     }
   }, [caffeine]);
 
   const closeModal = () => {
     sound.playClick();
+    if (activeModal === "coffee") {
+      if (hasDonatedOrInteractedRef.current) {
+        setCaffeine(100);
+        hasDonatedOrInteractedRef.current = false;
+        const refillMsg = REFILL_CONFIRMED_MESSAGES[refillIndexRef.current % REFILL_CONFIRMED_MESSAGES.length];
+        refillIndexRef.current += 1;
+
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [SYS_LOG] REFILL CONFIRMED`,
+          `[SYS] CAFFEINE: 100% // ${refillMsg}`,
+        ]);
+      } else if (caffeine <= 0) {
+        const theftMsg = THEFT_UNRESOLVED_MESSAGES[theftExitIndexRef.current % THEFT_UNRESOLVED_MESSAGES.length];
+        theftExitIndexRef.current += 1;
+
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [SYS_LOG] THEFT UNRESOLVED`,
+          `[SYS] COFFEE: STOLEN // DEBT: UNPAID`,
+          `[SYS] CAFFEINE: 0% // ${theftMsg}`,
+        ]);
+      }
+    }
     setActiveModal("none");
   };
 
@@ -408,6 +674,9 @@ export function DeveloperDesk3D() {
       className="fixed inset-0 w-screen h-screen bg-black font-mono overflow-hidden select-none"
       style={{ color: activeTheme.hex }}
     >
+      {/* 🎯 FUTURISTIC PRECISION HUD CUSTOM CURSOR */}
+      <CustomCursor themeHex={activeTheme.hex} />
+
       {/* 🟢 FULL VIEWPORT 3D WEBGL WORKSTATION SCENE */}
       <div
         className={`w-full h-full relative transition-all duration-300 ${
@@ -425,20 +694,15 @@ export function DeveloperDesk3D() {
           isPaused={isBlurred || showHelp}
           idCardFacing={idCardFacing}
           cameraResetCount={cameraResetCount}
+          sipTriggerCount={sipTriggerCount}
           theme={activeTheme}
+          caffeineLevel={caffeine}
         />
       </div>
 
-      {/* 🟢 TOP-RIGHT FLOATING TELEMETRY HUD (TIME, DATE & CONTROLS) */}
-      <div className="fixed top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
-        {/* Developer IST Time & Date Telemetry Pill */}
-        <div
-          className="bg-black/75 backdrop-blur-md border px-3 py-1.5 rounded-[4px] flex items-center gap-2.5 text-[10px] sm:text-xs"
-          style={{
-            borderColor: `${activeTheme.hex}4d`,
-            boxShadow: `0 0 15px ${activeTheme.hex}26`,
-          }}
-        >
+      {/* 🟢 TOP-LEFT LIVE TELEMETRY HUD (LOCATION, TIME & DATE) */}
+      <div className="fixed top-3 left-3 z-30 flex items-center pointer-events-auto">
+        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-[4px] flex items-center gap-2.5 text-[10px] sm:text-xs">
           <div className="flex items-center gap-1.5">
             <span
               className="w-1.5 h-1.5 rounded-full animate-pulse"
@@ -456,20 +720,66 @@ export function DeveloperDesk3D() {
             {date || "22 AUG 2026"}
           </span>
         </div>
+      </div>
+
+      {/* 🟢 TOP-RIGHT WORKSPACE CONTROLS (FPS SPARKLINE, RESET, SFX & GUIDE) */}
+      <div className="fixed top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
+        {/* Real-time Render & FPS Telemetry Sparkline */}
+        <div
+          className="bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-[4px] flex items-center gap-2 select-none"
+          title={`3D Spatial Engine: ${fps} FPS // ${(1000 / Math.max(1, fps)).toFixed(1)}ms frame time`}
+        >
+          {/* Mini Real-Time SVG Sparkline */}
+          <svg width="34" height="13" className="overflow-visible">
+            <defs>
+              <linearGradient id="fps-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={activeTheme.hex} stopOpacity="0.4" />
+                <stop offset="100%" stopColor={activeTheme.hex} stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+            <polygon
+              points={`0,13 ${frameHistory
+                .map((val, idx) => {
+                  const x = (idx / (frameHistory.length - 1)) * 34;
+                  const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+                  return `${x.toFixed(1)},${y.toFixed(1)}`;
+                })
+                .join(" ")} 34,13`}
+              fill="url(#fps-spark-grad)"
+            />
+            <polyline
+              fill="none"
+              stroke={activeTheme.hex}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={frameHistory
+                .map((val, idx) => {
+                  const x = (idx / (frameHistory.length - 1)) * 34;
+                  const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+                  return `${x.toFixed(1)},${y.toFixed(1)}`;
+                })
+                .join(" ")}
+            />
+          </svg>
+
+          {/* FPS Monospace Readout */}
+          <div className="flex items-center gap-1 font-mono text-[10px] font-bold tabular-nums" style={{ color: activeTheme.hex }}>
+            <span>{fps}</span>
+            <span className="text-[9px] opacity-70 font-semibold">FPS</span>
+          </div>
+        </div>
 
         {/* Reset Camera View Button */}
         <button
           onClick={handleResetCamera}
-          className="bg-black/75 backdrop-blur-md border px-2.5 py-1.5 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
-            borderColor: `${activeTheme.hex}4d`,
             color: activeTheme.hex,
-            boxShadow: `0 0 10px ${activeTheme.hex}1a`,
           }}
           title="Reset 3D Camera View (Shift+R / 'reset')"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">RESET</span>
         </button>
 
         {/* SFX Audio Toggle */}
@@ -478,26 +788,21 @@ export function DeveloperDesk3D() {
             const next = sound.toggle();
             setSoundEnabled(next);
           }}
-          className="bg-black/75 backdrop-blur-md border px-2.5 py-1.5 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
+          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
-            borderColor: `${activeTheme.hex}4d`,
             color: activeTheme.hex,
-            boxShadow: `0 0 10px ${activeTheme.hex}1a`,
           }}
-          title="Toggle Web Audio SFX"
+          title={soundEnabled ? "Mute Web Audio SFX" : "Enable Web Audio SFX"}
         >
           {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 opacity-50" />}
-          <span className="hidden sm:inline">{soundEnabled ? "SFX" : "MUTED"}</span>
         </button>
 
         {/* Guide / Help Button */}
         <button
           onClick={() => setShowHelp((prev) => !prev)}
-          className="bg-black/75 backdrop-blur-md border px-2 py-1.5 rounded-[4px] text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
-            borderColor: `${activeTheme.hex}4d`,
             color: activeTheme.hex,
-            boxShadow: `0 0 10px ${activeTheme.hex}1a`,
           }}
           title="Controls Guide"
         >
@@ -529,12 +834,21 @@ export function DeveloperDesk3D() {
               {activeModal === "sticky-note" && (
                 <NotesModal onClose={closeModal} theme={activeTheme} />
               )}
+              {activeModal === "coffee" && (
+                <CoffeeModal
+                  onClose={closeModal}
+                  theme={activeTheme}
+                  onInteracted={() => {
+                    hasDonatedOrInteractedRef.current = true;
+                  }}
+                />
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 🟢 GUIDE / SHORTCUTS MODAL */}
+      {/* 🟢 GUIDE / SHORTCUTS MODAL (RESPONSIVE TOUCH & KEYBOARD) */}
       <AnimatePresence>
         {showHelp && (
           <motion.div
@@ -542,68 +856,316 @@ export function DeveloperDesk3D() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowHelp(false)}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[440px] bg-[#000803] border-2 rounded-[8px] p-4 font-mono shadow-2xl space-y-3"
+              className="w-full max-w-[460px] max-h-[88vh] flex flex-col bg-[#000803] border-2 rounded-[10px] p-3.5 sm:p-4 font-mono shadow-2xl space-y-3 overflow-hidden"
               style={{
                 borderColor: activeTheme.hex,
                 color: activeTheme.hex,
-                boxShadow: `0 0 30px ${activeTheme.hex}40`,
+                boxShadow: `0 0 35px ${activeTheme.hex}40`,
               }}
             >
+              {/* Header */}
               <div
-                className="flex items-center justify-between border-b pb-1.5 font-bold text-xs"
+                className="flex items-center justify-between border-b pb-2 font-bold text-xs"
                 style={{ borderColor: `${activeTheme.hex}4d` }}
               >
-                <span>3D WORKSTATION CONTROLS</span>
-                <button onClick={() => setShowHelp(false)} className="hover:underline cursor-pointer">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeTheme.hex }} />
+                  <span className="tracking-wider">// WORKSTATION GUIDE</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHelp(false);
+                    sound.playClick();
+                  }}
+                  className="px-2 py-0.5 rounded border border-white/20 hover:bg-white/10 active:scale-95 transition-all text-xs cursor-pointer font-bold"
+                >
                   [ ✕ CLOSE ]
                 </button>
               </div>
 
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>Mouse Drag</span>
-                  <span>Orbit 3D Desk</span>
+              {/* Mode Switcher Tabs */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded bg-black/60 border text-xs" style={{ borderColor: `${activeTheme.hex}33` }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHelpTab("touch");
+                    sound.playClick();
+                  }}
+                  className={`py-1.5 px-2 rounded text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    helpTab === "touch"
+                      ? "border shadow"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                  style={{
+                    backgroundColor: helpTab === "touch" ? `${activeTheme.hex}26` : undefined,
+                    borderColor: helpTab === "touch" ? activeTheme.hex : "transparent",
+                    color: helpTab === "touch" ? activeTheme.hex : "#ffffff",
+                  }}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>MOBILE / TOUCH</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHelpTab("desktop");
+                    sound.playClick();
+                  }}
+                  className={`py-1.5 px-2 rounded text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    helpTab === "desktop"
+                      ? "border shadow"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                  style={{
+                    backgroundColor: helpTab === "desktop" ? `${activeTheme.hex}26` : undefined,
+                    borderColor: helpTab === "desktop" ? activeTheme.hex : "transparent",
+                    color: helpTab === "desktop" ? activeTheme.hex : "#ffffff",
+                  }}
+                >
+                  <Keyboard className="w-3.5 h-3.5" />
+                  <span>DESKTOP / KEYS</span>
+                </button>
+              </div>
+
+              {/* Body Content */}
+              <div className="overflow-y-auto max-h-[48vh] pr-1 space-y-2 text-xs">
+                {helpTab === "touch" ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>👆 1-Finger Drag</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Orbit &amp; Rotate 3D Desk</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>🤏 2-Finger Pinch</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Zoom In / Zoom Out</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>💻 Tap Laptop</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Open Virtual Keyboard &amp; CLI</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>🪪 Tap ID Card</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Inspect Verified Profile</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>📱 Tap Phone</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Launch KTCC Showcase</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>☕ Tap Mug</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>Sponsor &amp; Caffeine Modal</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>📼 Tap Cassette</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>SFX Audio Toggle</span>
+                    </div>
+
+                    <div className="flex items-center justify-between" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold flex items-center gap-1.5 text-white">
+                        <span>⚡ Bottom CLI Dock</span>
+                      </span>
+                      <span style={{ color: activeTheme.hex }}>1-Tap Quick Commands</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">Mouse Drag</span>
+                      <span style={{ color: activeTheme.hex }}>Orbit 3D Desk</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">Mouse Wheel</span>
+                      <span style={{ color: activeTheme.hex }}>Zoom In / Out</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">Any Keyboard Key</span>
+                      <span style={{ color: activeTheme.hex }}>Type on Laptop Screen</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[ENTER]</span>
+                      <span style={{ color: activeTheme.hex }}>Execute Command</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[TAB]</span>
+                      <span style={{ color: activeTheme.hex }}>Auto-Complete Command</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[↑ / ↓]</span>
+                      <span style={{ color: activeTheme.hex }}>History / Live Theme Preview</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[color / theme]</span>
+                      <span style={{ color: activeTheme.hex }}>Interactive RGB Theme Picker</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[Shift + R]</span>
+                      <span style={{ color: activeTheme.hex }}>Reset Camera View</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-bold text-white">[ESC]</span>
+                      <span style={{ color: activeTheme.hex }}>Back to Desk / Cancel</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Try Command Chips (Interactive Direct Execution) */}
+              <div className="pt-2 border-t space-y-1.5" style={{ borderColor: `${activeTheme.hex}33` }}>
+                <div className="text-[10px] font-bold opacity-75 uppercase tracking-wider" style={{ color: activeTheme.hex }}>
+                  // TRY INSTANT COMMANDS:
                 </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>Any Keyboard Key</span>
-                  <span>Type on Laptop Screen</span>
-                </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>[ENTER]</span>
-                  <span>Execute Command</span>
-                </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>[TAB]</span>
-                  <span>Auto-Complete Command</span>
-                </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>[↑ / ↓]</span>
-                  <span>History / Live Theme Preview</span>
-                </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>[color / theme]</span>
-                  <span>Interactive RGB Theme Picker</span>
-                </div>
-                <div className="flex justify-between border-b pb-1" style={{ borderColor: `${activeTheme.hex}26` }}>
-                  <span>[Shift + R]</span>
-                  <span>Reset Camera View</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>[ESC]</span>
-                  <span>Back to Desk / Cancel Menu</span>
+                <div className="flex flex-wrap gap-1 text-[10px]">
+                  {["whoami", "ktcc", "stack", "color", "socials", "reset", "clear"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        handleCommand(c);
+                        setShowHelp(false);
+                      }}
+                      className="px-2 py-0.5 rounded border bg-black/60 hover:bg-white/15 active:scale-95 transition-all cursor-pointer font-bold font-mono"
+                      style={{
+                        borderColor: `${activeTheme.hex}4d`,
+                        color: activeTheme.hex,
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
                 </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 🟢 MOBILE ONLY CYBER TERMINAL COMMAND BAR (Hidden on desktop) */}
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-30 pointer-events-auto font-mono">
+        <AnimatePresence>
+          {showMobileInput && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.98 }}
+              transition={{ duration: 0.18 }}
+              className="bg-[#000803]/95 backdrop-blur-xl border rounded-[8px] p-2 sm:p-2.5 shadow-2xl space-y-2"
+              style={{
+                borderColor: `${activeTheme.hex}80`,
+                boxShadow: `0 0 25px ${activeTheme.hex}33`,
+              }}
+            >
+              {/* Quick Command Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-[10px] sm:text-xs">
+                <span className="text-[9px] font-bold opacity-60 shrink-0 uppercase tracking-wider" style={{ color: activeTheme.hex }}>
+                  // QUICK:
+                </span>
+                {QUICK_COMMANDS.map((cmd) => (
+                  <button
+                    key={cmd}
+                    type="button"
+                    onClick={() => {
+                      handleCommand(cmd);
+                      if (window.innerWidth < 768) {
+                        inputRef.current?.focus();
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded-[3px] border bg-black/60 hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer font-mono"
+                    style={{
+                      borderColor: `${activeTheme.hex}4d`,
+                      color: activeTheme.hex,
+                    }}
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input Form Row */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCommand(input);
+                }}
+                className="flex items-center gap-2 bg-black/80 border rounded-[5px] px-2.5 py-1.5"
+                style={{ borderColor: `${activeTheme.hex}4d` }}
+              >
+                <Terminal className="w-3.5 h-3.5 shrink-0" style={{ color: activeTheme.hex }} />
+                <span className="text-[11px] font-bold shrink-0 hidden xs:inline" style={{ color: `${activeTheme.hex}cc` }}>
+                  neeraj@sys:~$
+                </span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => {
+                    sound.playClick(1.3 + Math.random() * 0.4);
+                    setInput(e.target.value);
+                  }}
+                  placeholder="Type command (whoami, ktcc, stack, color...)"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="flex-1 bg-transparent text-xs font-mono outline-none text-white placeholder:text-gray-500 placeholder:text-[10px] sm:placeholder:text-xs min-w-0"
+                />
+                <button
+                  type="submit"
+                  className="px-2.5 py-1 rounded-[3px] border font-bold text-[10px] sm:text-xs flex items-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
+                  style={{
+                    borderColor: activeTheme.hex,
+                    backgroundColor: `${activeTheme.hex}26`,
+                    color: activeTheme.hex,
+                  }}
+                >
+                  <span>RUN</span>
+                  <CornerDownLeft className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileInput(false);
+                    inputRef.current?.blur();
+                    sound.playClick();
+                  }}
+                  className="p-1 rounded-[3px] text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                  title="Close Command Bar"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

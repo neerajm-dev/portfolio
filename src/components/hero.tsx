@@ -7,13 +7,14 @@ import { sound } from "@/lib/sound";
 import { MatrixAvatar } from "./ui/matrix-avatar";
 import { DecodeText } from "./ui/decode-text";
 import { Terminal, Copy, Check, ArrowDown, Sparkles, Layers, ShieldCheck, Zap } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 export function Hero() {
   const [copied, setCopied] = useState(false);
 
   const handleCopyEmail = (e: React.MouseEvent) => {
     sound.playSuccess();
-    navigator.clipboard.writeText("neerajm2k7@gmail.com");
+    navigator.clipboard.writeText("hi.neerajm@gmail.com");
     setCopied(true);
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -74,7 +75,7 @@ export function Hero() {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="mt-6 text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl font-mono leading-relaxed"
       >
-        <DecodeText text="19yo Systems Builder • BCA @ SNCT • Full-Stack Android & Cloud • $0 Cloud Infrastructure Specialist." speed={20} />
+        <DecodeText text={`${DEVELOPER_PROFILE.age}yo Systems Builder • BCA @ SNCT • Full-Stack Android & Cloud • $0 Cloud Infrastructure Specialist.`} speed={20} />
       </motion.p>
 
       {/* Action Buttons */}

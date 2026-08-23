@@ -12,6 +12,7 @@ import { createCoffeeMesh } from "./objects/coffee-mesh";
 import { createCassetteMesh } from "./objects/cassette-mesh";
 import { createNotesMesh } from "./objects/notes-mesh";
 import { createChairMesh } from "./objects/chair-mesh";
+import { createHologramSphere } from "./objects/hologram-sphere";
 
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 
@@ -21,7 +22,8 @@ export type InteractivePropId =
   | "phone"
   | "coffee"
   | "cassette"
-  | "notes";
+  | "notes"
+  | "hologram";
 
 interface SceneCanvasProps {
   onSelectObject: (id: InteractivePropId) => void;
@@ -30,7 +32,9 @@ interface SceneCanvasProps {
   isPaused?: boolean;
   idCardFacing?: "front" | "back";
   cameraResetCount?: number;
+  sipTriggerCount?: number;
   theme?: WorkstationTheme;
+  caffeineLevel?: number;
 }
 
 export function SceneCanvas({
@@ -40,7 +44,9 @@ export function SceneCanvas({
   isPaused = false,
   idCardFacing = "front",
   cameraResetCount = 0,
+  sipTriggerCount = 0,
   theme = DEFAULT_THEME,
+  caffeineLevel = 100,
 }: SceneCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const updateScreenRef = useRef<
@@ -49,6 +55,8 @@ export function SceneCanvas({
   const setCardFacingRef = useRef<((facing: "front" | "back") => void) | null>(null);
   const resetCameraRef = useRef<(() => void) | null>(null);
   const updateThemeRef = useRef<((theme: WorkstationTheme) => void) | null>(null);
+  const setCoffeeLevelRef = useRef<((level: number) => void) | null>(null);
+  const triggerCoffeeSipRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(isPaused);
   const onSelectObjectRef = useRef(onSelectObject);
   const terminalLinesRef = useRef(terminalLines);
@@ -57,14 +65,23 @@ export function SceneCanvas({
   const themeRef = useRef(theme);
 
   useEffect(() => {
+    if (sipTriggerCount > 0 && triggerCoffeeSipRef.current) {
+      triggerCoffeeSipRef.current();
+    }
+  }, [sipTriggerCount]);
+
+  useEffect(() => {
     themeRef.current = theme;
     if (updateThemeRef.current) {
       updateThemeRef.current(theme);
     }
-    if (updateScreenRef.current) {
-      updateScreenRef.current(terminalLinesRef.current, currentInputRef.current, theme.hex);
-    }
   }, [theme]);
+
+  useEffect(() => {
+    if (setCoffeeLevelRef.current && caffeineLevel !== undefined) {
+      setCoffeeLevelRef.current(caffeineLevel);
+    }
+  }, [caffeineLevel]);
 
   useEffect(() => {
     if (cameraResetCount > 0 && resetCameraRef.current) {
@@ -133,17 +150,24 @@ export function SceneCanvas({
     renderer.shadowMap.enabled = false;
     container.appendChild(renderer.domElement);
 
-    // 2. LIGHTING (Direct, minimal overhead)
-    const ambientLight = new THREE.AmbientLight(0x00ff66, 0.45);
+    // 2. STUDIO 4-POINT CYBER ATMOSPHERE LIGHTING (Balanced fill, key, rim & CRT glow)
+    const ambientLight = new THREE.AmbientLight(0x0a1420, 0.65);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x00ff66, 0.85);
-    dirLight.position.set(5, 10, 6);
+    const hemiLight = new THREE.HemisphereLight(0x162636, 0x03060a, 0.85);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xe2f8f0, 0.95);
+    dirLight.position.set(6, 11, 7);
     scene.add(dirLight);
 
-    const pointLight = new THREE.PointLight(0x00ff66, 1.4, 10);
-    pointLight.position.set(0, 3.2, 0);
-    scene.add(pointLight);
+    const rimLight = new THREE.DirectionalLight(0x00ff66, 1.3);
+    rimLight.position.set(-6, 8, -7);
+    scene.add(rimLight);
+
+    const screenLight = new THREE.PointLight(0x00ff66, 1.5, 8);
+    screenLight.position.set(0, 2.0, 0.4);
+    scene.add(screenLight);
 
     // 3. MOUNT PROCEDURAL 3D OBJECTS & INFINITE GRID FLOOR
     // Infinite Dark Cyber Ground Plane
@@ -203,37 +227,54 @@ export function SceneCanvas({
     scene.add(deskSurface);
 
     const laptop = createLaptopMesh();
+    laptop.group.position.set(0, 0.02, 1.75);
     scene.add(laptop.group);
     updateScreenRef.current = laptop.updateScreenTexture;
     laptop.updateScreenTexture(terminalLinesRef.current, currentInputRef.current);
 
     const idCard = createIdCardMesh();
+    idCard.group.position.set(-3.8, 0.028, 2.6);
+    idCard.group.rotation.y = Math.PI / 16;
     scene.add(idCard.group);
     setCardFacingRef.current = idCard.setFacing;
     idCard.setFacing(idCardFacingRef.current);
 
     const phone = createPhoneMesh();
+    phone.group.position.set(3.4, 0.028, 2.3);
+    phone.group.rotation.y = -Math.PI / 18;
     scene.add(phone.group);
 
-    const coffee = createCoffeeMesh();
+    const coffee = createCoffeeMesh(caffeineLevel);
+    coffee.group.position.set(5.0, 0, 2.5);
     scene.add(coffee.group);
+    setCoffeeLevelRef.current = coffee.setCoffeeLevel;
+    triggerCoffeeSipRef.current = coffee.triggerSipAnimation;
+    coffee.setCoffeeLevel(caffeineLevel, true);
 
     const cassette = createCassetteMesh();
+    cassette.group.position.set(-4.2, 0.028, 0.9);
     scene.add(cassette.group);
 
     const notes = createNotesMesh();
+    notes.group.position.set(-4.4, 0.032, -0.6);
     scene.add(notes.group);
 
+    const hologram = createHologramSphere();
+    scene.add(hologram.group);
+
     const chair = createChairMesh();
-    chair.position.set(0.25, 0, 6.6);
+    chair.position.set(0.15, 0, 5.5);
     chair.rotation.y = 0.32;
     scene.add(chair);
 
     // Live Dynamic Workstation Theme Updater
     const updateTheme = (newTheme: WorkstationTheme) => {
-      ambientLight.color.setHex(newTheme.threeColor);
-      dirLight.color.setHex(newTheme.threeColor);
-      pointLight.color.setHex(newTheme.threeColor);
+      const themeCol = new THREE.Color(newTheme.threeColor);
+
+      hemiLight.color.copy(themeCol).multiplyScalar(0.35).add(new THREE.Color(0x0e1824));
+      dirLight.color.copy(themeCol).multiplyScalar(0.25).add(new THREE.Color(0xdce7ef));
+      rimLight.color.setHex(newTheme.threeColor);
+      screenLight.color.setHex(newTheme.threeColor);
 
       updateGridColors(floorGrid, newTheme.threeColor);
 
@@ -258,6 +299,7 @@ export function SceneCanvas({
       coffee.setTheme(newTheme);
       cassette.setTheme(newTheme);
       notes.setTheme(newTheme);
+      hologram.setTheme(newTheme);
     };
 
     updateThemeRef.current = updateTheme;
@@ -282,39 +324,41 @@ export function SceneCanvas({
     };
 
     const hitboxes: THREE.Mesh[] = [
-      createHitbox("laptop", [4.6, 2.6, 3.0], [0, 1.2, -0.2]),
-      createHitbox("id-card", [2.0, 0.4, 1.6], [4.2, 0.1, 1.6]),
-      createHitbox("phone", [1.4, 0.3, 2.2], [3.4, 0.1, -0.4]),
-      createHitbox("coffee", [1.2, 1.2, 1.2], [4.4, 0.5, 0.4]),
-      createHitbox("cassette", [1.8, 0.8, 1.4], [-4.2, 0.3, 1.4]),
-      createHitbox("notes", [1.6, 0.5, 1.6], [-4.5, 0.1, -1.5]),
+      createHitbox("laptop", [4.6, 2.6, 3.0], [0, 1.2, 1.55]),
+      createHitbox("id-card", [2.0, 0.4, 1.6], [-3.8, 0.1, 2.6]),
+      createHitbox("phone", [1.4, 0.3, 2.2], [3.4, 0.1, 2.3]),
+      createHitbox("coffee", [1.2, 1.2, 1.2], [5.0, 0.5, 2.5]),
+      createHitbox("cassette", [1.8, 0.8, 1.4], [-4.2, 0.3, 0.9]),
+      createHitbox("notes", [1.6, 0.5, 1.6], [-4.4, 0.1, -0.6]),
+      hologram.holoMesh,
     ];
 
     // 5. EVENT-DRIVEN SPHERICAL 3D ORBIT, PINCH-TO-ZOOM & INTERACTION
     const raycaster = new THREE.Raycaster();
     const MIN_CAM_DIST = 4.6;
     const MAX_CAM_DIST = 46.0;
-    const lookTarget = new THREE.Vector3(0, 0.75, -0.2);
+    const lookTarget = new THREE.Vector3(0, 0.85, 1.0);
 
     let targetCamDist = 9.4;
+    let targetAzimuth = 0;
+    let targetElevation = 0.58;
     let currentCamDist = 9.4;
+    let currentAzimuth = 0;
+    let currentElevation = 0.58;
 
     let isDragging = false;
+    let isSpinningHolo = false;
     let dragStartPointerX = 0;
     let dragStartPointerY = 0;
     let previousPointerX = 0;
     let previousPointerY = 0;
-    let hasMoved = false;
+    let dragStartTime = 0;
+    let totalTravelDist = 0;
+    let prevPinchDist = 0;
+    let maxPointersInGesture = 0;
 
     // Multi-touch tracking for pinch-to-zoom
     const activePointers = new Map<number, { x: number; y: number }>();
-    let prevPinchDist = 0;
-
-    // Default angle: azimuth = 0 (front), elevation = ~0.58 rad (~33 deg)
-    let targetAzimuth = 0;
-    let targetElevation = 0.58;
-    let currentAzimuth = 0;
-    let currentElevation = 0.58;
 
     const resetCamera = () => {
       targetCamDist = 9.4;
@@ -326,23 +370,34 @@ export function SceneCanvas({
     const handlePointerDown = (e: PointerEvent) => {
       if (isPausedRef.current) return;
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      maxPointersInGesture = Math.max(maxPointersInGesture, activePointers.size);
 
       if (activePointers.size === 2) {
-        // Initialize Pinch-to-Zoom
+        // Initialize 2-finger Pinch-to-Zoom
         const pts = Array.from(activePointers.values());
         prevPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        hasMoved = true;
+        totalTravelDist += 100; // Flag as multi-touch gesture
         return;
       }
 
       if (activePointers.size === 1) {
         isDragging = true;
-        hasMoved = false;
+        dragStartTime = performance.now();
         dragStartPointerX = e.clientX;
         dragStartPointerY = e.clientY;
         previousPointerX = e.clientX;
         previousPointerY = e.clientY;
-        container.style.cursor = "grabbing";
+        totalTravelDist = 0;
+        maxPointersInGesture = 1;
+
+        // Check if the user pressed down directly on the expanded hologram
+        const rect = container.getBoundingClientRect();
+        const startX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const startY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(new THREE.Vector2(startX, startY), camera);
+        const downHits = raycaster.intersectObjects(hitboxes, false);
+        isSpinningHolo = hologram.getIsExpanded() && downHits.length > 0 && downHits[0].object.userData.id === "hologram";
+
         try {
           container.setPointerCapture(e.pointerId);
         } catch {
@@ -356,6 +411,7 @@ export function SceneCanvas({
       if (activePointers.has(e.pointerId)) {
         activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       }
+      maxPointersInGesture = Math.max(maxPointersInGesture, activePointers.size);
 
       // Handle 2-Finger Pinch-to-Zoom on Mobile / Tablets
       if (activePointers.size === 2) {
@@ -363,13 +419,14 @@ export function SceneCanvas({
         const currPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         if (prevPinchDist > 0) {
           const deltaDist = currPinchDist - prevPinchDist;
+          // High-sensitivity responsive pinch zoom for mobile touchscreens
           targetCamDist = Math.max(
             MIN_CAM_DIST,
-            Math.min(MAX_CAM_DIST, targetCamDist - deltaDist * 0.02)
+            Math.min(MAX_CAM_DIST, targetCamDist - deltaDist * 0.065)
           );
         }
         prevPinchDist = currPinchDist;
-        hasMoved = true;
+        totalTravelDist += 50;
         return;
       }
 
@@ -380,28 +437,37 @@ export function SceneCanvas({
       if (isDragging && activePointers.size === 1) {
         const deltaX = e.clientX - previousPointerX;
         const deltaY = e.clientY - previousPointerY;
+        const moveDist = Math.hypot(deltaX, deltaY);
+        totalTravelDist += moveDist;
 
-        if (
-          Math.abs(e.clientX - dragStartPointerX) > 4 ||
-          Math.abs(e.clientY - dragStartPointerY) > 4
-        ) {
-          hasMoved = true;
+        if (isSpinningHolo) {
+          // Direct drag-rotation on the expanded holographic sphere
+          hologram.addRotation(deltaX, deltaY);
+        } else {
+          // Touch devices have smaller physical viewports — apply higher sensitivity for comfortable thumb swiping
+          const isTouch = e.pointerType === "touch";
+          const rotSensX = isTouch ? 0.013 : 0.0065;
+          const rotSensY = isTouch ? 0.0085 : 0.0045;
+
+          // True horizontal 360° orbital rotation (dragging right rotates camera clockwise)
+          targetAzimuth -= deltaX * rotSensX;
+          // Vertical pitch angle clamped between 0.18 rad (low angle) and 1.22 rad (top-down)
+          targetElevation = Math.max(
+            0.18,
+            Math.min(1.22, targetElevation + deltaY * rotSensY)
+          );
         }
-
-        // True horizontal 360° orbital rotation (dragging right rotates camera clockwise)
-        targetAzimuth -= deltaX * 0.006;
-        // Vertical pitch angle clamped between 0.18 rad (low angle) and 1.22 rad (top-down)
-        targetElevation = Math.max(
-          0.18,
-          Math.min(1.22, targetElevation + deltaY * 0.004)
-        );
 
         previousPointerX = e.clientX;
         previousPointerY = e.clientY;
       } else {
         raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
         const hovered = raycaster.intersectObjects(hitboxes, false);
-        container.style.cursor = hovered.length > 0 ? "pointer" : "grab";
+        const isInteractiveHover = hovered.length > 0;
+        document.documentElement.setAttribute(
+          "data-cursor-hover",
+          isInteractiveHover ? "true" : "false"
+        );
       }
     };
 
@@ -412,9 +478,10 @@ export function SceneCanvas({
         prevPinchDist = 0;
       }
 
+      const wasDragging = isDragging;
       if (activePointers.size === 0) {
         isDragging = false;
-        container.style.cursor = "grab";
+        isSpinningHolo = false;
         try {
           container.releasePointerCapture(e.pointerId);
         } catch {
@@ -422,8 +489,19 @@ export function SceneCanvas({
         }
       }
 
-      // If user tapped / clicked without dragging or pinching, perform raycast selection
-      if (!hasMoved && !isPausedRef.current && activePointers.size === 0) {
+      // Strict Disambiguation: Only trigger selection on intentional, deliberate single taps
+      // Ensures rotating or pinch-zooming never accidentally triggers the laptop / modals
+      const tapDuration = performance.now() - dragStartTime;
+      const displacement = Math.hypot(e.clientX - dragStartPointerX, e.clientY - dragStartPointerY);
+      const isCleanTap =
+        wasDragging &&
+        maxPointersInGesture === 1 &&
+        activePointers.size === 0 &&
+        totalTravelDist < 12 &&
+        displacement < 12 &&
+        tapDuration < 450;
+
+      if (isCleanTap && !isPausedRef.current) {
         const rect = container.getBoundingClientRect();
         const clickX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const clickY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -434,12 +512,20 @@ export function SceneCanvas({
         if (intersects.length > 0) {
           const propId = intersects[0].object.userData.id as InteractivePropId;
           if (propId === "laptop") {
-            sound.playClick();
-          } else {
+            sound.playClick(1.5);
+          } else if (propId === "hologram") {
+            hologram.toggleExpand();
+            sound.playNodePulse();
+          } else if (propId !== "coffee") {
             sound.playNodePulse();
           }
           onSelectObjectRef.current(propId);
         }
+      }
+
+      if (activePointers.size === 0) {
+        maxPointersInGesture = 0;
+        totalTravelDist = 0;
       }
     };
 
@@ -510,10 +596,11 @@ export function SceneCanvas({
       const delta = Math.min((now - lastDeltaTime) / 1000, 0.1);
       lastDeltaTime = now;
 
-      // Update animated props (steam, cassette & ID card matrix cipher)
+      // Update animated props (steam, cassette, ID card & holographic ASCII sphere)
       coffee.updateSteam(delta);
       cassette.updateDeck(delta, sound.getEnabled());
       idCard.updateCard(delta);
+      hologram.updateHolo(delta);
 
       // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
       currentCamDist += (targetCamDist - currentCamDist) * 0.10;
@@ -587,5 +674,5 @@ export function SceneCanvas({
     };
   }, []);
 
-  return <div ref={containerRef} className="w-full h-full relative" />;
+  return <div ref={containerRef} className="w-full h-full relative touch-none select-none" />;
 }

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { sound } from "@/lib/sound";
 import { X, Trash2, CornerDownLeft } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface FullscreenTerminalModalProps {
   onClose: () => void;
@@ -92,7 +93,7 @@ export function FullscreenTerminalModal({ onClose }: FullscreenTerminalModalProp
           content: (
             <div className="space-y-1 text-xs sm:text-sm text-[#00ff66]/90">
               <div className="text-[#00ff66] font-bold">NAME: NEERAJ M</div>
-              <div>ROLE: Solo Architect &amp; Systems Engineer (19 years old)</div>
+              <div>ROLE: Solo Architect &amp; Systems Engineer ({DEVELOPER_PROFILE.age} years old)</div>
               <div>EDUCATION: Pursuing BCA @ SNCT (Kerala, India 🇮🇳)</div>
               <div>SPECIALTY: $0 Cloud Platforms, Next.js 15, Android Hybrid Engines, Supabase PostgreSQL</div>
               <div className="font-bold text-[#00ff66] mt-1">&quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;</div>
@@ -175,7 +176,7 @@ export function FullscreenTerminalModal({ onClose }: FullscreenTerminalModalProp
               <div className="text-[#00ff66] font-bold">CONNECT WITH NEERAJ M:</div>
               <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" rel="noopener noreferrer" className="underline font-bold">@neerajm_dev</a></div>
               <div>• GitHub: <a href="https://github.com/neerajm-dev" target="_blank" rel="noopener noreferrer" className="underline font-bold">@neerajm-dev</a></div>
-              <div>• Email: <a href="mailto:neerajm2k7@gmail.com" className="underline font-bold">neerajm2k7@gmail.com</a></div>
+              <div>• Email: <a href="mailto:hi.neerajm@gmail.com" className="underline font-bold">hi.neerajm@gmail.com</a></div>
             </div>
           ),
         };

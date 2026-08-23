@@ -223,14 +223,13 @@ function createTufLidBackTexture(): {
 }
 
 /**
- * Procedural Canvas Texture for Individual 3D Keycap Top Faces with Live Theme Re-render
+ * Procedural Canvas Texture for Individual 3D Keycap Top Faces (Rendered once in White Mask)
  */
 function createKeyTopTexture(
   label: string,
   subLabel: string = "",
   isWASD: boolean = false,
-  isSpecial: boolean = false,
-  keyUpdaters?: Array<(themeHex: string) => void>
+  isSpecial: boolean = false
 ): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -239,89 +238,83 @@ function createKeyTopTexture(
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
 
-  const renderKey = (themeHex: string = DEFAULT_THEME.hex) => {
-    if (!ctx) return;
-    if (isWASD) {
-      // Frosted Translucent WASD Top
-      ctx.fillStyle = "#ecfdf5";
-      ctx.fillRect(0, 0, 256, 256);
+  if (!ctx) return texture;
 
-      ctx.strokeStyle = themeHex;
-      ctx.lineWidth = 10;
-      ctx.strokeRect(6, 6, 244, 244);
+  if (isWASD) {
+    // Frosted Translucent WASD Top
+    ctx.fillStyle = "#ecfdf5";
+    ctx.fillRect(0, 0, 256, 256);
 
-      const wasdGrad = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
-      wasdGrad.addColorStop(0, "#ffffff");
-      wasdGrad.addColorStop(1, "#d1fae5");
-      ctx.fillStyle = wasdGrad;
-      ctx.fillRect(10, 10, 236, 236);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(6, 6, 244, 244);
 
-      ctx.fillStyle = "#021208";
-      ctx.font = "900 130px monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, 128, 134);
-    } else {
-      // Dark Matte Chiclet Top
-      ctx.fillStyle = "#020704";
-      ctx.fillRect(0, 0, 256, 256);
+    const wasdGrad = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
+    wasdGrad.addColorStop(0, "#ffffff");
+    wasdGrad.addColorStop(1, "#d1fae5");
+    ctx.fillStyle = wasdGrad;
+    ctx.fillRect(10, 10, 236, 236);
 
-      ctx.strokeStyle = `${themeHex}d9`;
-      ctx.lineWidth = 8;
-      ctx.strokeRect(6, 6, 244, 244);
+    ctx.fillStyle = "#021208";
+    ctx.font = "900 130px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 128, 134);
+  } else {
+    // Dark Matte Chiclet Top with High-Contrast White Legend
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, 256, 256);
 
-      // Caps Lock Status LED indicator square on the right side
-      if (label.includes("CAPS")) {
-        ctx.fillStyle = themeHex;
-        ctx.shadowColor = themeHex;
-        ctx.shadowBlur = 12;
-        ctx.fillRect(212, 116, 24, 24);
-        ctx.shadowBlur = 0;
-      }
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.lineWidth = 8;
+    ctx.strokeRect(6, 6, 244, 244);
 
-      ctx.fillStyle = themeHex;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      if (subLabel) {
-        ctx.font = "bold 44px monospace";
-        ctx.fillStyle = `${themeHex}bf`;
-        ctx.fillText(subLabel, 128, 76);
-
-        ctx.font = "bold 62px monospace";
-        ctx.fillStyle = themeHex;
-        ctx.fillText(label, 128, 168);
-      } else {
-        ctx.font =
-          label.length > 6
-            ? "bold 36px monospace"
-            : label.length > 4
-            ? "bold 44px monospace"
-            : label.length > 2
-            ? "bold 56px monospace"
-            : label.length > 1
-            ? "bold 68px monospace"
-            : "bold 96px monospace";
-        ctx.fillText(label, 128, 128);
-      }
-
-      // Tactile homing notch underline on F, J, and Numpad 5
-      if (label === "F" || label === "J" || (label === "5" && !subLabel)) {
-        ctx.fillStyle = themeHex;
-        ctx.shadowColor = themeHex;
-        ctx.shadowBlur = 6;
-        ctx.fillRect(88, 204, 80, 10);
-        ctx.shadowBlur = 0;
-      }
+    // Caps Lock Status LED indicator square on the right side
+    if (label.includes("CAPS")) {
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 12;
+      ctx.fillRect(212, 116, 24, 24);
+      ctx.shadowBlur = 0;
     }
-    texture.needsUpdate = true;
-  };
 
-  renderKey(DEFAULT_THEME.hex);
-  if (keyUpdaters) {
-    keyUpdaters.push(renderKey);
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    if (subLabel) {
+      ctx.font = "bold 44px monospace";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.fillText(subLabel, 128, 76);
+
+      ctx.font = "bold 62px monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(label, 128, 168);
+    } else {
+      ctx.font =
+        label.length > 6
+          ? "bold 36px monospace"
+          : label.length > 4
+          ? "bold 44px monospace"
+          : label.length > 2
+          ? "bold 56px monospace"
+          : label.length > 1
+          ? "bold 68px monospace"
+          : "bold 96px monospace";
+      ctx.fillText(label, 128, 128);
+    }
+
+    // Tactile homing notch underline on F, J, and Numpad 5
+    if (label === "F" || label === "J" || (label === "5" && !subLabel)) {
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 6;
+      ctx.fillRect(88, 204, 80, 10);
+      ctx.shadowBlur = 0;
+    }
   }
 
+  texture.needsUpdate = true;
   return texture;
 }
 
@@ -330,7 +323,7 @@ function createKeyTopTexture(
  */
 function createTufPowerButtonMesh(wireMat: THREE.Material): {
   group: THREE.Group;
-  renderPowerButton: (themeHex: string) => void;
+  topMat: THREE.MeshBasicMaterial;
 } {
   const pwrGroup = new THREE.Group();
 
@@ -365,7 +358,7 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
   const pwrGeo = new THREE.ExtrudeGeometry(pShape, extrudeSettings);
   pwrGeo.rotateX(Math.PI / 2);
 
-  // Dedicated High-Resolution Power Button Canvas Texture
+  // Dedicated High-Resolution Power Button Canvas Texture (Rendered once in White)
   const pwrCanvas = document.createElement("canvas");
   pwrCanvas.width = 256;
   pwrCanvas.height = 256;
@@ -374,13 +367,12 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
   const pwrTexture = new THREE.CanvasTexture(pwrCanvas);
   pwrTexture.colorSpace = THREE.SRGBColorSpace;
 
-  const renderPowerButton = (themeHex: string = DEFAULT_THEME.hex) => {
-    if (!pCtx) return;
-    pCtx.fillStyle = "#020704";
+  if (pCtx) {
+    pCtx.fillStyle = "#000000";
     pCtx.fillRect(0, 0, 256, 256);
 
     // Faceted border glow
-    pCtx.strokeStyle = `${themeHex}e6`;
+    pCtx.strokeStyle = "rgba(255, 255, 255, 0.9)";
     pCtx.lineWidth = 8;
     pCtx.beginPath();
     pCtx.moveTo(68, 24);
@@ -393,13 +385,13 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
     pCtx.stroke();
 
     // 1. Horizontal Status LED Slit (Top)
-    pCtx.fillStyle = themeHex;
-    pCtx.shadowColor = themeHex;
+    pCtx.fillStyle = "#ffffff";
+    pCtx.shadowColor = "#ffffff";
     pCtx.shadowBlur = 14;
     pCtx.fillRect(92, 44, 72, 12);
 
     // 2. Power Symbol (⏻)
-    pCtx.strokeStyle = themeHex;
+    pCtx.strokeStyle = "#ffffff";
     pCtx.lineWidth = 14;
     pCtx.lineCap = "round";
 
@@ -416,9 +408,7 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
     pCtx.shadowBlur = 0;
 
     pwrTexture.needsUpdate = true;
-  };
-
-  renderPowerButton(DEFAULT_THEME.hex);
+  }
 
   const pwrSideMat = new THREE.MeshStandardMaterial({
     color: 0x000603,
@@ -428,6 +418,7 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
 
   const pwrTopMat = new THREE.MeshBasicMaterial({
     map: pwrTexture,
+    color: DEFAULT_THEME.threeColor,
     toneMapped: false,
   });
 
@@ -438,7 +429,7 @@ function createTufPowerButtonMesh(wireMat: THREE.Material): {
   const pwrWire = new THREE.LineSegments(new THREE.EdgesGeometry(pwrGeo, 15), wireMat);
   pwrGroup.add(pwrWire);
 
-  return { group: pwrGroup, renderPowerButton };
+  return { group: pwrGroup, topMat: pwrTopMat };
 }
 
 interface Key3DDef {
@@ -468,9 +459,9 @@ export function createLaptopMesh(): {
 
   // 1. TUF F15 SCULPTED BASE CHASSIS WITH 45° CHAMFERED FRONT CORNERS
   const baseMat = new THREE.MeshStandardMaterial({
-    color: 0x000804,
-    roughness: 0.6,
-    metalness: 0.4,
+    color: 0x090f17,
+    roughness: 0.42,
+    metalness: 0.65,
   });
 
   const halfW = 2.2;
@@ -731,8 +722,9 @@ export function createLaptopMesh(): {
   // 3. RECESSED 3D KEYBOARD WELL TRAY
   const wellGeo = new THREE.BoxGeometry(3.85, 0.02, 1.48);
   const wellMat = new THREE.MeshStandardMaterial({
-    color: 0x000301,
-    roughness: 0.95,
+    color: 0x060b11,
+    roughness: 0.65,
+    metalness: 0.35,
   });
   const wellMesh = new THREE.Mesh(wellGeo, wellMat);
   wellMesh.position.set(0, 0.138, -0.45);
@@ -760,9 +752,9 @@ export function createLaptopMesh(): {
 
   // 4. INDIVIDUAL 3D PHYSICAL CHICLET KEYS (EXACT ASUS TUF GAMING F15 BLUEPRINT)
   const keySideMat = new THREE.MeshStandardMaterial({
-    color: 0x000603,
-    roughness: 0.6,
-    metalness: 0.3,
+    color: 0x0d1521,
+    roughness: 0.48,
+    metalness: 0.45,
   });
 
   const wasdSideMat = new THREE.MeshStandardMaterial({
@@ -900,12 +892,19 @@ export function createLaptopMesh(): {
   // Render all standard 3D physical keys
   const keyHeight = 0.024;
   const keyY = 0.154;
-  const keyUpdaters: Array<(themeHex: string) => void> = [];
+  const keycapMaterials: THREE.MeshBasicMaterial[] = [];
 
   keys3D.forEach((k) => {
     const kGeo = new THREE.BoxGeometry(k.w, keyHeight, k.d);
-    const topTex = createKeyTopTexture(k.label, k.sub, k.isWASD, k.isSpecial, keyUpdaters);
-    const topMat = new THREE.MeshBasicMaterial({ map: topTex, toneMapped: false });
+    const topTex = createKeyTopTexture(k.label, k.sub, k.isWASD, k.isSpecial);
+    const topMat = new THREE.MeshBasicMaterial({
+      map: topTex,
+      color: k.isWASD ? 0xffffff : DEFAULT_THEME.threeColor,
+      toneMapped: false,
+    });
+    if (!k.isWASD) {
+      keycapMaterials.push(topMat);
+    }
     const sideM = k.isWASD ? wasdSideMat : keySideMat;
 
     const kMaterials = [
@@ -994,24 +993,23 @@ export function createLaptopMesh(): {
   const touchTexture = new THREE.CanvasTexture(touchCanvas);
   touchTexture.colorSpace = THREE.SRGBColorSpace;
 
-  const renderTouchpad = (themeHex: string = DEFAULT_THEME.hex) => {
-    if (!touchCtx) return;
-    touchCtx.fillStyle = "#000603";
+  if (touchCtx) {
+    touchCtx.fillStyle = "#000000";
     touchCtx.fillRect(0, 0, 512, 320);
 
-    touchCtx.fillStyle = `${themeHex}0a`;
+    touchCtx.fillStyle = "rgba(255, 255, 255, 0.08)";
     for (let x = 0; x < 512; x += 16) {
       for (let y = 0; y < 320; y += 16) {
         touchCtx.fillRect(x, y, 1.5, 1.5);
       }
     }
 
-    touchCtx.strokeStyle = `${themeHex}99`;
+    touchCtx.strokeStyle = "rgba(255, 255, 255, 0.85)";
     touchCtx.lineWidth = 4;
     touchCtx.strokeRect(6, 6, 500, 308);
 
     // 4 Corner Targeting Crosshairs
-    touchCtx.strokeStyle = themeHex;
+    touchCtx.strokeStyle = "#ffffff";
     touchCtx.lineWidth = 3;
     const tick = 18;
     // Top-Left
@@ -1030,19 +1028,18 @@ export function createLaptopMesh(): {
     touchCtx.stroke();
 
     touchTexture.needsUpdate = true;
-  };
-
-  renderTouchpad(DEFAULT_THEME.hex);
+  }
 
   const touchFaceMat = new THREE.MeshBasicMaterial({
     map: touchTexture,
+    color: DEFAULT_THEME.threeColor,
     toneMapped: false,
   });
 
   const touchBodyMat = new THREE.MeshStandardMaterial({
-    color: 0x000502,
-    roughness: 0.5,
-    metalness: 0.2,
+    color: 0x090f17,
+    roughness: 0.42,
+    metalness: 0.55,
   });
 
   const touchMaterials = [
@@ -1066,9 +1063,9 @@ export function createLaptopMesh(): {
 
   // Discrete Physical Left & Right Click Buttons
   const btnMat = new THREE.MeshStandardMaterial({
-    color: 0x000603,
-    roughness: 0.4,
-    metalness: 0.3,
+    color: 0x0c141e,
+    roughness: 0.35,
+    metalness: 0.6,
   });
 
   const btnLGeo = new THREE.BoxGeometry(0.69, 0.015, 0.22);
@@ -1085,9 +1082,13 @@ export function createLaptopMesh(): {
   btnR.position.set(0.26, 0.149, 1.13);
   group.add(btnR);
 
+  const btnRWire = new THREE.LineSegments(new THREE.EdgesGeometry(btnRGeo), wireMat);
+  btnRWire.position.set(0.26, 0.149, 1.13);
+  group.add(btnRWire);
+
   // 5. EXACT ASUS TUF FACETED SHIELD POWER BUTTON WITH STATUS LED & POWER ICON (Callout 10)
   const pwrButton = createTufPowerButtonMesh(wireMat);
-  pwrButton.group.position.set(2.06, 0.154, -1.28);
+  pwrButton.group.position.set(2.06, 0.154, -1.34);
   group.add(pwrButton.group);
 
   // 6. DISPLAY LID PIVOT (ANGLED UPRIGHT FACING USER)
@@ -1370,9 +1371,10 @@ export function createLaptopMesh(): {
     group,
     updateScreenTexture: renderScreen,
     setTheme: (theme: WorkstationTheme) => {
-      keyUpdaters.forEach((updater) => updater(theme.hex));
-      renderTouchpad(theme.hex);
-      pwrButton.renderPowerButton(theme.hex);
+      keycapMaterials.forEach((mat) => mat.color.setHex(theme.threeColor));
+      touchFaceMat.color.setHex(theme.threeColor);
+      pwrButton.topMat.color.setHex(theme.threeColor);
+      wireMat.color.setHex(theme.threeColor);
       sbStripeMat.color.setHex(theme.threeColor);
       tufLidBack.renderLidBack(theme.hex);
       renderScreen(lastRenderLines, lastRenderInput, theme.hex);

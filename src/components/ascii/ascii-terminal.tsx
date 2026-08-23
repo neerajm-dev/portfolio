@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { sound } from "@/lib/sound";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface LogEntry {
   id: string;
@@ -73,7 +74,7 @@ export function AsciiTerminal() {
           type: "output",
           content: (
             <div className="space-y-1 text-xs">
-              <div>NAME: Neeraj M (19yo Systems Architect)</div>
+              <div>NAME: Neeraj M ({DEVELOPER_PROFILE.age}yo Systems Architect)</div>
               <div>EDUCATION: BCA @ Sree Narayana College of Technology, Kollam, Kerala</div>
               <div>SPECIALTY: $0 Cloud Platforms, Next.js 15, Android Hybrid Engines, PostgreSQL RLS</div>
               <div className="font-bold mt-1">&quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;</div>
@@ -129,7 +130,7 @@ export function AsciiTerminal() {
             <div className="space-y-1 text-xs">
               <div>• GitHub: <a href="https://github.com/neerajm-dev" target="_blank" className="underline font-bold">github.com/neerajm-dev</a></div>
               <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" className="underline font-bold">@neerajm_dev</a></div>
-              <div>• Email: <span className="font-bold">neerajm2k7@gmail.com</span></div>
+              <div>• Email: <span className="font-bold">hi.neerajm@gmail.com</span></div>
             </div>
           ),
         };

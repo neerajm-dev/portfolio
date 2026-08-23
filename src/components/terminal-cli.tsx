@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { sound } from "@/lib/sound";
 import { DecodeText } from "./ui/decode-text";
 import { Terminal as TerminalIcon, CornerDownLeft, Sparkles, Copy, Check, Trash2, Volume2 } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface LogEntry {
   id: string;
@@ -101,7 +102,7 @@ export function TerminalCli() {
           content: (
             <div className="space-y-1.5 text-xs md:text-sm font-mono text-gray-300">
               <div className="text-[#00f0ff] font-bold">NAME: Neeraj M</div>
-              <div>ROLE: Solo Systems Architect & Full-Stack Engineer (Age 19)</div>
+              <div>ROLE: Solo Systems Architect & Full-Stack Engineer (Age {DEVELOPER_PROFILE.age})</div>
               <div>EDUCATION: Pursuing BCA @ Sree Narayana College of Technology (SNCT), Kollam</div>
               <div>FOCUS: Next.js 15, Android Hybrid Engines, PostgreSQL RLS & $0 Cloud Infrastructure</div>
               <div className="text-[#10b981] font-bold mt-1">
@@ -202,7 +203,7 @@ export function TerminalCli() {
             <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
               <div>• GitHub: <a href="https://github.com/neerajm-dev" target="_blank" className="text-[#00f0ff] underline">github.com/neerajm-dev</a></div>
               <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" className="text-[#00f0ff] underline">@neerajm_dev</a></div>
-              <div>• Email: <span className="text-[#10b981]">neerajm2k7@gmail.com</span></div>
+              <div>• Email: <span className="text-[#10b981]">hi.neerajm@gmail.com</span></div>
               <div>• Portfolio: <a href="https://neerajm.vercel.app" target="_blank" className="text-[#00f0ff] underline">neerajm.vercel.app</a></div>
             </div>
           ),

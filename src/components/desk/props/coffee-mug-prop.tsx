@@ -3,19 +3,34 @@
 import { useState } from "react";
 import { sound } from "@/lib/sound";
 
-export function CoffeeMugProp() {
-  const [level, setLevel] = useState(99);
+interface CoffeeMugPropProps {
+  onSelect?: () => void;
+}
+
+export function CoffeeMugProp({ onSelect }: CoffeeMugPropProps) {
+  const [level, setLevel] = useState(100);
 
   const handleClick = () => {
-    sound.playHover();
-    setLevel((prev) => (prev <= 10 ? 99 : prev - 15));
+    sound.playClick(1.4);
+    setLevel((prev) => {
+      if (prev > 65) return 65;
+      if (prev > 35) return 35;
+      if (prev > 12) return 12;
+
+      // 0% Reached -> Trigger auto modal popup
+      sound.playSuccess();
+      setTimeout(() => {
+        onSelect?.();
+      }, 250);
+      return 0;
+    });
   };
 
   return (
     <div
       onClick={handleClick}
       className="flex flex-col items-center cursor-pointer select-none font-mono group"
-      title="Click to sip coffee"
+      title={level === 0 ? "Cup empty! Click to open refill sponsor modal" : `Caffeine fuel: ${level}%. Click to sip`}
     >
       {/* Animated Rising Steam */}
       <div className="flex gap-1 text-[8px] text-[#00ff66]/70 leading-none h-4 items-end overflow-hidden mb-0.5">

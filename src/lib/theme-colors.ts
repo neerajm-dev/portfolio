@@ -9,6 +9,7 @@ export interface WorkstationTheme {
 export const WORKSTATION_THEMES: WorkstationTheme[] = [
   { id: "green", name: "Matrix Green", hex: "#00ff66", rgb: [0, 255, 102], threeColor: 0x00ff66 },
   { id: "cyan", name: "Cyber Cyan", hex: "#00f0ff", rgb: [0, 240, 255], threeColor: 0x00f0ff },
+  { id: "white", name: "Pure White", hex: "#ffffff", rgb: [255, 255, 255], threeColor: 0xffffff },
   { id: "amber", name: "Solar Amber", hex: "#f59e0b", rgb: [245, 158, 11], threeColor: 0xf59e0b },
   { id: "purple", name: "Synthwave Purple", hex: "#c084fc", rgb: [192, 132, 252], threeColor: 0xc084fc },
   { id: "red", name: "Tokyo Red", hex: "#ff0055", rgb: [255, 0, 85], threeColor: 0xff0055 },
@@ -33,8 +34,10 @@ export function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
+const tintCache = new Map<string, HTMLCanvasElement>();
+
 /**
- * Dynamically recolor ASCII avatar image pixels to match any theme hex
+ * Dynamically recolor ASCII avatar image pixels to match any theme hex with caching
  */
 export function createTintedAvatarCanvas(
   img: HTMLImageElement,
@@ -43,6 +46,10 @@ export function createTintedAvatarCanvas(
   h: number
 ): HTMLCanvasElement | null {
   if (typeof document === "undefined" || !img || !img.complete || img.naturalWidth === 0) return null;
+  const cacheKey = `${themeHex}_${w}_${h}_${img.src}`;
+  const cached = tintCache.get(cacheKey);
+  if (cached) return cached;
+
   try {
     const offCanvas = document.createElement("canvas");
     offCanvas.width = w;
@@ -70,6 +77,7 @@ export function createTintedAvatarCanvas(
     }
 
     offCtx.putImageData(imgData, 0, 0);
+    tintCache.set(cacheKey, offCanvas);
     return offCanvas;
   } catch {
     return null;

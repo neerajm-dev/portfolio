@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { sound } from "@/lib/sound";
 import { Maximize2, Trash2, CornerDownLeft, Sparkles } from "lucide-react";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 interface LogEntry {
   id: string;
@@ -87,7 +88,7 @@ export function LaptopProp({ onExpand }: LaptopPropProps) {
           content: (
             <div className="space-y-0.5 text-[9.5px] sm:text-[10.5px] text-[#00ff66]/90">
               <div className="text-[#00ff66] font-bold">NAME: NEERAJ M</div>
-              <div>ROLE: Solo Architect &amp; Systems Engineer (19yo)</div>
+              <div>ROLE: Solo Architect &amp; Systems Engineer ({DEVELOPER_PROFILE.age}yo)</div>
               <div>EDUCATION: Pursuing BCA @ SNCT (Kerala, India 🇮🇳)</div>
               <div>FOCUS: Next.js 15, Android Hybrid Engines, Supabase PostgreSQL</div>
               <div>BUDGET: Strict $0.00/mo Cloud Infrastructure Specialist</div>
@@ -170,7 +171,7 @@ export function LaptopProp({ onExpand }: LaptopPropProps) {
               <div className="text-[#00ff66] font-bold">DEVELOPER SOCIALS:</div>
               <div>• GitHub: <a href="https://github.com/neerajm-dev" target="_blank" rel="noopener noreferrer" className="underline font-bold">@neerajm-dev</a></div>
               <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" rel="noopener noreferrer" className="underline font-bold">@neerajm_dev</a></div>
-              <div>• Email: <a href="mailto:neerajm2k7@gmail.com" className="underline font-bold">neerajm2k7@gmail.com</a></div>
+              <div>• Email: <a href="mailto:hi.neerajm@gmail.com" className="underline font-bold">hi.neerajm@gmail.com</a></div>
             </div>
           ),
         };

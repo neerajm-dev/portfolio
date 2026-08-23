@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { sound } from "@/lib/sound";
 import { QrCode } from "@/components/ui/qr-code";
 import { WorkstationTheme, DEFAULT_THEME, createTintedAvatarCanvas } from "@/lib/theme-colors";
+import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 const MATRIX_CHARS = "0123456789ABCDEF$#%&*@!Ø§µΩΔΨXYZ";
 
@@ -138,7 +139,7 @@ export function AsciiIdCard({
   const handleCopyEmail = (e: React.MouseEvent) => {
     e.stopPropagation();
     sound.playSuccess();
-    navigator.clipboard.writeText("neerajm2k7@gmail.com");
+    navigator.clipboard.writeText("hi.neerajm@gmail.com");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -243,7 +244,7 @@ export function AsciiIdCard({
                 </div>
                 <div>
                   <span style={{ color: `${themeHex}80` }}>AGE   : </span>
-                  <span className="font-bold">19</span>
+                  <span className="font-bold">{DEVELOPER_PROFILE.age}</span>
                 </div>
                 <div>
                   <span style={{ color: `${themeHex}80` }}>BASE  : </span>
@@ -423,7 +424,7 @@ export function AsciiIdCard({
                 </div>
                 <div>• GITHUB: <a href="https://github.com/neerajm-dev" target="_blank" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="font-bold underline">@neerajm-dev</a></div>
                 <div>• INSTA: <a href="https://instagram.com/neerajm_dev" target="_blank" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="font-bold underline">@neerajm_dev</a></div>
-                <div>• EMAIL: <span className="font-bold">neerajm2k7@gmail.com</span></div>
+                <div>• EMAIL: <span className="font-bold">hi.neerajm@gmail.com</span></div>
               </div>
 
               {/* Scannable Vector QR Code Box */}
@@ -440,7 +441,7 @@ export function AsciiIdCard({
                   boxShadow: `0 0 10px ${themeHex}40`,
                 }}
               >
-                <QrCode value="https://neerajm.vercel.app" size={54} fgColor={themeHex} />
+                <QrCode value="https://neerajm.vercel.app" size={54} fgColor={themeHex} centerLogo={true} />
               </a>
             </div>
           </div>

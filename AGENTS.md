@@ -23,7 +23,7 @@ When in doubt, **answer first, act later** — ask if the user wants you to make
 - **Socials & Links:**
   - **Instagram:** `@neerajm_dev`
   - **GitHub:** `neerajm-dev` / `Neeraj M`
-  - **Email:** `neerajm2k7@gmail.com`
+  - **Email:** `hi.neerajm@gmail.com`
   - **Live Flagship:** `https://ktccofficial.vercel.app`
   - **Portfolio Live Domain:** `https://neerajm.vercel.app` (Future custom domain: `https://neerajm.in`)
 - **The Challenge Origin:**
