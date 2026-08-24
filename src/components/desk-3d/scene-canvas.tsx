@@ -27,6 +27,7 @@ export type InteractivePropId =
 
 interface SceneCanvasProps {
   onSelectObject: (id: InteractivePropId) => void;
+  onReady?: () => void;
   terminalLines?: string[];
   currentInput?: string;
   isPaused?: boolean;
@@ -55,6 +56,7 @@ const getAdaptiveCameraParams = (aspect: number) => {
 
 export function SceneCanvas({
   onSelectObject,
+  onReady,
   terminalLines,
   currentInput = "",
   isPaused = false,
@@ -75,10 +77,15 @@ export function SceneCanvas({
   const triggerCoffeeSipRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(isPaused);
   const onSelectObjectRef = useRef(onSelectObject);
+  const onReadyRef = useRef(onReady);
   const terminalLinesRef = useRef(terminalLines);
   const currentInputRef = useRef(currentInput);
   const idCardFacingRef = useRef(idCardFacing);
   const themeRef = useRef(theme);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
 
   useEffect(() => {
     if (sipTriggerCount > 0 && triggerCoffeeSipRef.current) {
@@ -676,6 +683,7 @@ export function SceneCanvas({
     let animationFrameId: number;
     let lastRenderTime = 0;
     let lastDeltaTime = performance.now();
+    let hasNotifiedReady = false;
     const TARGET_FPS_INTERVAL = 1000 / 60; // 60 FPS cap
 
     const animate = (now: number) => {
@@ -722,6 +730,12 @@ export function SceneCanvas({
 
       if (renderer) {
         renderer.render(scene, camera);
+        if (!hasNotifiedReady) {
+          hasNotifiedReady = true;
+          requestAnimationFrame(() => {
+            onReadyRef.current?.();
+          });
+        }
       }
     };
 
