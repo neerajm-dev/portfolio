@@ -13,6 +13,7 @@ import { createCassetteMesh } from "./objects/cassette-mesh";
 import { createNotesMesh } from "./objects/notes-mesh";
 import { createChairMesh } from "./objects/chair-mesh";
 import { createHologramSphere } from "./objects/hologram-sphere";
+import { createMouseMesh } from "./objects/mouse-mesh";
 
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 
@@ -23,7 +24,8 @@ export type InteractivePropId =
   | "coffee"
   | "cassette"
   | "notes"
-  | "hologram";
+  | "hologram"
+  | "mouse";
 
 interface SceneCanvasProps {
   onSelectObject: (id: InteractivePropId) => void;
@@ -34,6 +36,7 @@ interface SceneCanvasProps {
   idCardFacing?: "front" | "back";
   cameraResetCount?: number;
   sipTriggerCount?: number;
+  mouseTriggerCount?: number;
   theme?: WorkstationTheme;
   caffeineLevel?: number;
 }
@@ -63,6 +66,7 @@ export function SceneCanvas({
   idCardFacing = "front",
   cameraResetCount = 0,
   sipTriggerCount = 0,
+  mouseTriggerCount = 0,
   theme = DEFAULT_THEME,
   caffeineLevel = 100,
 }: SceneCanvasProps) {
@@ -75,6 +79,7 @@ export function SceneCanvas({
   const updateThemeRef = useRef<((theme: WorkstationTheme) => void) | null>(null);
   const setCoffeeLevelRef = useRef<((level: number) => void) | null>(null);
   const triggerCoffeeSipRef = useRef<(() => void) | null>(null);
+  const triggerMouseClickRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(isPaused);
   const onSelectObjectRef = useRef(onSelectObject);
   const onReadyRef = useRef(onReady);
@@ -86,6 +91,12 @@ export function SceneCanvas({
   useEffect(() => {
     onReadyRef.current = onReady;
   }, [onReady]);
+
+  useEffect(() => {
+    if (mouseTriggerCount > 0 && triggerMouseClickRef.current) {
+      triggerMouseClickRef.current();
+    }
+  }, [mouseTriggerCount]);
 
   useEffect(() => {
     if (sipTriggerCount > 0 && triggerCoffeeSipRef.current) {
@@ -275,13 +286,18 @@ export function SceneCanvas({
     setCardFacingRef.current = idCard.setFacing;
     idCard.setFacing(idCardFacingRef.current);
 
+    const mouse = createMouseMesh();
+    scene.add(mouse.group);
+    triggerMouseClickRef.current = mouse.triggerClick;
+
     const phone = createPhoneMesh();
-    phone.group.position.set(3.4, 0.028, 2.3);
-    phone.group.rotation.y = -Math.PI / 18;
+    phone.group.position.set(3.70, 0.028, 0.90);
+    phone.group.scale.set(0.80, 0.80, 0.80);
+    phone.group.rotation.y = -Math.PI / 16;
     scene.add(phone.group);
 
     const coffee = createCoffeeMesh(caffeineLevel);
-    coffee.group.position.set(5.0, 0, 2.5);
+    coffee.group.position.set(5.50, 0, 2.65);
     scene.add(coffee.group);
     setCoffeeLevelRef.current = coffee.setCoffeeLevel;
     triggerCoffeeSipRef.current = coffee.triggerSipAnimation;
@@ -332,6 +348,7 @@ export function SceneCanvas({
       // Synchronize all procedural canvas textures & shader props
       laptop.setTheme(newTheme);
       idCard.setTheme(newTheme);
+      mouse.setTheme(newTheme);
       coffee.setTheme(newTheme);
       cassette.setTheme(newTheme);
       notes.setTheme(newTheme);
@@ -362,8 +379,9 @@ export function SceneCanvas({
     const hitboxes: THREE.Mesh[] = [
       createHitbox("laptop", [4.6, 2.6, 3.0], [0, 1.2, 1.55]),
       createHitbox("id-card", [2.0, 0.4, 1.6], [-3.8, 0.1, 2.6]),
-      createHitbox("phone", [1.4, 0.3, 2.2], [3.4, 0.1, 2.3]),
-      createHitbox("coffee", [1.2, 1.2, 1.2], [5.0, 0.5, 2.5]),
+      mouse.mouseHitbox,
+      createHitbox("phone", [1.10, 0.35, 1.80], [3.70, 0.1, 0.90]),
+      createHitbox("coffee", [1.2, 1.2, 1.2], [5.50, 0.5, 2.65]),
       createHitbox("cassette", [1.8, 0.8, 1.4], [-4.2, 0.3, 0.9]),
       createHitbox("notes", [1.6, 0.5, 1.6], [-4.4, 0.1, -0.6]),
       hologram.holoMesh,
@@ -710,6 +728,7 @@ export function SceneCanvas({
         cassette.updateDeck(delta, sound.getEnabled());
         idCard.updateCard(delta);
         hologram.updateHolo(delta);
+        mouse.updateMouse(delta);
 
         // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
         currentCamDist += (targetCamDist - currentCamDist) * 0.10;

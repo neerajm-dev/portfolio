@@ -17,7 +17,8 @@ import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 type ModalType = "none" | "id-card" | "phone" | "sticky-note" | "coffee";
 
-const QUICK_COMMANDS = ["help", "whoami", "ktcc", "coffee", "brotoraise", "stack", "socials", "color", "reset", "clear"];
+const QUICK_COMMANDS = ["help", "whoami", "ktcc", "coffee", "mouse", "brotoraise", "stack", "socials", "color", "reset", "clear"];
+const DPI_PRESETS = [800, 1600, 2400, 3200, 6400];
 
 const buildColorPickerLines = (selectedIndex: number, currentActiveId: string): string[] => {
   const lines = [
@@ -218,7 +219,11 @@ export function DeveloperDesk3D() {
   const [idCardFacing, setIdCardFacing] = useState<"front" | "back">("front");
   const [cameraResetCount, setCameraResetCount] = useState(0);
   const [sipTriggerCount, setSipTriggerCount] = useState(0);
+  const [mouseTriggerCount, setMouseTriggerCount] = useState(0);
   const [isSceneReady, setIsSceneReady] = useState(false);
+
+  const mouseClicksRef = useRef(0);
+  const dpiIndexRef = useRef(3); // Default 3200 DPI
 
   const [activeTheme, setActiveTheme] = useState<WorkstationTheme>(DEFAULT_THEME);
   const [pickerMode, setPickerMode] = useState<"none" | "color">("none");
@@ -317,7 +322,7 @@ export function DeveloperDesk3D() {
     } else {
       switch (clean) {
         case "help":
-          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, brotoraise, stack, socials, color, reset, clear";
+          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, mouse, brotoraise, stack, socials, color, reset, clear";
           break;
         case "whoami":
           responseLine = `[WHOAMI] Neeraj M (${DEVELOPER_PROFILE.age}yo) // BCA @ SNCT Kollam, Kerala`;
@@ -325,6 +330,13 @@ export function DeveloperDesk3D() {
         case "avatar":
         case "neeraj":
           responseLine = "[IMG:avatar]";
+          break;
+        case "mouse":
+        case "dpi":
+          responseLine = `[MOUSE] Tactical Gaming Mouse // ${DPI_PRESETS[dpiIndexRef.current % DPI_PRESETS.length]} DPI // 1000Hz Optical Sensor // Braided USB-A (3D Model by jerard27, CC BY 4.0)`;
+          break;
+        case "credits":
+          responseLine = "[CREDITS] 3D Assets: Gaming Mouse by jerard27 (CC BY 4.0 via Sketchfab) // Built by Neeraj M";
           break;
         case "ktcc":
         case "phone":
@@ -636,6 +648,29 @@ export function DeveloperDesk3D() {
         const next = sound.toggle();
         setSoundEnabled(next);
         break;
+      case "mouse": {
+        sound.playClick(1.8);
+        setMouseTriggerCount((c) => c + 1);
+        mouseClicksRef.current += 1;
+
+        if (mouseClicksRef.current % 4 === 0) {
+          dpiIndexRef.current += 1;
+          const newDpi = DPI_PRESETS[dpiIndexRef.current % DPI_PRESETS.length];
+          setTerminalLines((lines) => [
+            ...lines.slice(-6),
+            `[neeraj@sys ~]$ [EVENT] OPTICAL SENSOR: DPI PRESET SWITCH`,
+            `[SYS] MOUSE: ${newDpi} DPI // 1000Hz POLLING // TOTAL CLICKS: ${mouseClicksRef.current} 🖱️`,
+          ]);
+        } else {
+          const currentDpi = DPI_PRESETS[dpiIndexRef.current % DPI_PRESETS.length];
+          setTerminalLines((lines) => [
+            ...lines.slice(-6),
+            `[neeraj@sys ~]$ [EVENT] OPTICAL MICRO-SWITCH CLICK`,
+            `[SYS] MOUSE: ${currentDpi} DPI // 1000Hz // CLICKS: ${mouseClicksRef.current} 🖱️`,
+          ]);
+        }
+        break;
+      }
       case "hologram":
         sound.playNodePulse();
         setTerminalLines((lines) => [
@@ -860,6 +895,7 @@ export function DeveloperDesk3D() {
           idCardFacing={idCardFacing}
           cameraResetCount={cameraResetCount}
           sipTriggerCount={sipTriggerCount}
+          mouseTriggerCount={mouseTriggerCount}
           theme={activeTheme}
           caffeineLevel={caffeine}
         />
