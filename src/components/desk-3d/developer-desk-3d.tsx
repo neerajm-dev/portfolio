@@ -6,7 +6,7 @@ import { sound } from "@/lib/sound";
 
 import { SceneCanvas, InteractivePropId } from "./scene-canvas";
 import { AsciiIdCard } from "@/components/ascii/ascii-id-card";
-import { KtccModal } from "@/components/desk/modals/ktcc-modal";
+import { PhoneModal } from "@/components/desk/modals/phone-modal";
 import { NotesModal } from "@/components/desk/modals/notes-modal";
 import { CoffeeModal } from "@/components/desk/modals/coffee-modal";
 
@@ -60,10 +60,140 @@ const REFILL_CONFIRMED_MESSAGES = [
   "Coffee's back. Crisis averted.",
 ];
 
-export function DeveloperDesk3D() {
-  const [activeModal, setActiveModal] = useState<ModalType>("none");
+function LiveClock({ themeHex }: { themeHex: string }) {
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-US", {
+        timeZone: "Asia/Kolkata",
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      const ms = String(now.getMilliseconds()).padStart(3, "0");
+      setTime(`${timeStr}.${ms}`);
+
+      setDate(
+        now.toLocaleDateString("en-GB", {
+          timeZone: "Asia/Kolkata",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).toUpperCase()
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 40);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-[4px] flex items-center gap-2.5 text-[10px] sm:text-xs">
+      <div className="flex items-center gap-1.5">
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{ backgroundColor: themeHex }}
+        />
+        <span className="font-bold hidden sm:inline" style={{ color: `${themeHex}99` }}>
+          KERALA, IN
+        </span>
+        <span className="font-bold tracking-wider font-mono tabular-nums" style={{ color: themeHex }}>
+          {time || "19:00:00.000"} IST
+        </span>
+      </div>
+      <div className="hidden sm:inline-flex items-center gap-2.5">
+        <span style={{ color: `${themeHex}4d` }}>|</span>
+        <span className="font-bold text-[9px] sm:text-[10px]" style={{ color: `${themeHex}cc` }}>
+          {date || "22 AUG 2026"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FpsSparkline({ themeHex }: { themeHex: string }) {
+  const [fps, setFps] = useState(60);
+  const [frameHistory, setFrameHistory] = useState<number[]>([
+    16.2, 16.5, 16.7, 16.6, 16.4, 16.8, 16.6, 16.5, 16.7, 16.6, 16.5, 16.6,
+  ]);
+
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let animId: number;
+
+    const loop = (now: number) => {
+      frameCount++;
+      const elapsed = now - lastTime;
+
+      if (elapsed >= 500) {
+        const currentFps = Math.min(120, Math.max(1, Math.round((frameCount * 1000) / elapsed)));
+        const frameTime = +(1000 / currentFps).toFixed(1);
+        setFps(currentFps);
+        frameCount = 0;
+        lastTime = now;
+
+        setFrameHistory((prev) => [...prev.slice(1), frameTime]);
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return (
+    <div
+      className="bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-[4px] flex items-center gap-2 select-none"
+      title={`3D Spatial Engine: ${fps} FPS // ${(1000 / Math.max(1, fps)).toFixed(1)}ms frame time`}
+    >
+      <svg width="34" height="13" className="overflow-visible">
+        <defs>
+          <linearGradient id="fps-spark-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={themeHex} stopOpacity="0.4" />
+            <stop offset="100%" stopColor={themeHex} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <polygon
+          points={`0,13 ${frameHistory
+            .map((val, idx) => {
+              const x = (idx / (frameHistory.length - 1)) * 34;
+              const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+              return `${x.toFixed(1)},${y.toFixed(1)}`;
+            })
+            .join(" ")} 34,13`}
+          fill="url(#fps-spark-grad)"
+        />
+        <polyline
+          fill="none"
+          stroke={themeHex}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={frameHistory
+            .map((val, idx) => {
+              const x = (idx / (frameHistory.length - 1)) * 34;
+              const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+              return `${x.toFixed(1)},${y.toFixed(1)}`;
+            })
+            .join(" ")}
+        />
+      </svg>
+      <div className="flex items-center gap-1 font-mono text-[10px] font-bold tabular-nums" style={{ color: themeHex }}>
+        <span>{fps}</span>
+        <span className="text-[9px] opacity-70 font-semibold">FPS</span>
+      </div>
+    </div>
+  );
+}
+
+export function DeveloperDesk3D() {
+  const [activeModal, setActiveModal] = useState<ModalType>("none");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [helpTab, setHelpTab] = useState<"touch" | "desktop">("desktop");
@@ -99,38 +229,6 @@ export function DeveloperDesk3D() {
   const emptyTapIndexRef = useRef(0);
   const theftExitIndexRef = useRef(0);
   const refillIndexRef = useRef(0);
-
-  // Real-time FPS & Render Telemetry Sparkline
-  const [fps, setFps] = useState(60);
-  const [frameHistory, setFrameHistory] = useState<number[]>([
-    16.2, 16.5, 16.7, 16.6, 16.4, 16.8, 16.6, 16.5, 16.7, 16.6, 16.5, 16.6,
-  ]);
-
-  useEffect(() => {
-    let frameCount = 0;
-    let lastTime = performance.now();
-    let animId: number;
-
-    const loop = (now: number) => {
-      frameCount++;
-      const elapsed = now - lastTime;
-
-      if (elapsed >= 400) {
-        const currentFps = Math.min(120, Math.max(1, Math.round((frameCount * 1000) / elapsed)));
-        const frameTime = +(1000 / currentFps).toFixed(1);
-        setFps(currentFps);
-        frameCount = 0;
-        lastTime = now;
-
-        setFrameHistory((prev) => [...prev.slice(1), frameTime]);
-      }
-
-      animId = requestAnimationFrame(loop);
-    };
-
-    animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
-  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -169,32 +267,7 @@ export function DeveloperDesk3D() {
     }
   }, [caffeine]);
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("en-US", {
-        timeZone: "Asia/Kolkata",
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-      const ms = String(now.getMilliseconds()).padStart(3, "0");
-      setTime(`${timeStr}.${ms}`);
 
-      setDate(
-        now.toLocaleDateString("en-GB", {
-          timeZone: "Asia/Kolkata",
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }).toUpperCase()
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 33);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleResetCamera = useCallback(() => {
     setCameraResetCount((c) => c + 1);
@@ -253,7 +326,10 @@ export function DeveloperDesk3D() {
           responseLine = "[IMG:avatar]";
           break;
         case "ktcc":
-          responseLine = "[KTCC] Tournament platform // Double-entry SQL ledger // $0.00/mo";
+        case "phone":
+        case "mobile":
+        case "smartphone":
+          responseLine = "[PHONE] Launching interactive 3D smartphone & KTCC platform...";
           setActiveModal("phone");
           break;
         case "coffee":
@@ -671,7 +747,7 @@ export function DeveloperDesk3D() {
 
   return (
     <div
-      className="fixed inset-0 w-screen h-screen bg-black font-mono overflow-hidden select-none"
+      className="fixed inset-0 w-screen h-[100dvh] bg-black font-mono overflow-hidden select-none touch-none"
       style={{ color: activeTheme.hex }}
     >
       {/* 🎯 FUTURISTIC PRECISION HUD CUSTOM CURSOR */}
@@ -702,73 +778,13 @@ export function DeveloperDesk3D() {
 
       {/* 🟢 TOP-LEFT LIVE TELEMETRY HUD (LOCATION, TIME & DATE) */}
       <div className="fixed top-3 left-3 z-30 flex items-center pointer-events-auto">
-        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-[4px] flex items-center gap-2.5 text-[10px] sm:text-xs">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: activeTheme.hex }}
-            />
-            <span className="font-bold hidden sm:inline" style={{ color: `${activeTheme.hex}99` }}>
-              KERALA, IN
-            </span>
-            <span className="font-bold tracking-wider font-mono tabular-nums" style={{ color: activeTheme.hex }}>
-              {time || "19:00:00.000"} IST
-            </span>
-          </div>
-          <span style={{ color: `${activeTheme.hex}4d` }}>|</span>
-          <span className="font-bold text-[9px] sm:text-[10px]" style={{ color: `${activeTheme.hex}cc` }}>
-            {date || "22 AUG 2026"}
-          </span>
-        </div>
+        <LiveClock themeHex={activeTheme.hex} />
       </div>
 
       {/* 🟢 TOP-RIGHT WORKSPACE CONTROLS (FPS SPARKLINE, RESET, SFX & GUIDE) */}
       <div className="fixed top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
         {/* Real-time Render & FPS Telemetry Sparkline */}
-        <div
-          className="bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-[4px] flex items-center gap-2 select-none"
-          title={`3D Spatial Engine: ${fps} FPS // ${(1000 / Math.max(1, fps)).toFixed(1)}ms frame time`}
-        >
-          {/* Mini Real-Time SVG Sparkline */}
-          <svg width="34" height="13" className="overflow-visible">
-            <defs>
-              <linearGradient id="fps-spark-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={activeTheme.hex} stopOpacity="0.4" />
-                <stop offset="100%" stopColor={activeTheme.hex} stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points={`0,13 ${frameHistory
-                .map((val, idx) => {
-                  const x = (idx / (frameHistory.length - 1)) * 34;
-                  const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
-                  return `${x.toFixed(1)},${y.toFixed(1)}`;
-                })
-                .join(" ")} 34,13`}
-              fill="url(#fps-spark-grad)"
-            />
-            <polyline
-              fill="none"
-              stroke={activeTheme.hex}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              points={frameHistory
-                .map((val, idx) => {
-                  const x = (idx / (frameHistory.length - 1)) * 34;
-                  const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
-                  return `${x.toFixed(1)},${y.toFixed(1)}`;
-                })
-                .join(" ")}
-            />
-          </svg>
-
-          {/* FPS Monospace Readout */}
-          <div className="flex items-center gap-1 font-mono text-[10px] font-bold tabular-nums" style={{ color: activeTheme.hex }}>
-            <span>{fps}</span>
-            <span className="text-[9px] opacity-70 font-semibold">FPS</span>
-          </div>
-        </div>
+        <FpsSparkline themeHex={activeTheme.hex} />
 
         {/* Reset Camera View Button */}
         <button
@@ -830,7 +846,19 @@ export function DeveloperDesk3D() {
                   theme={activeTheme}
                 />
               )}
-              {activeModal === "phone" && <KtccModal onClose={closeModal} />}
+              {activeModal === "phone" && (
+                <PhoneModal
+                  onClose={closeModal}
+                  theme={activeTheme}
+                  onOpenTerminal={() => {
+                    closeModal();
+                    handleSelectObject("laptop");
+                  }}
+                  onOpenIdCard={() => {
+                    setActiveModal("id-card");
+                  }}
+                />
+              )}
               {activeModal === "sticky-note" && (
                 <NotesModal onClose={closeModal} theme={activeTheme} />
               )}
@@ -1069,7 +1097,7 @@ export function DeveloperDesk3D() {
       </AnimatePresence>
 
       {/* 🟢 MOBILE ONLY CYBER TERMINAL COMMAND BAR (Hidden on desktop) */}
-      <div className="md:hidden fixed bottom-3 left-3 right-3 z-30 pointer-events-auto font-mono">
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-30 pointer-events-auto font-mono pb-[env(safe-area-inset-bottom,0px)]">
         <AnimatePresence>
           {showMobileInput && (
             <motion.div

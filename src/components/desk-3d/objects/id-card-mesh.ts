@@ -432,12 +432,9 @@ export function createIdCardMesh(): {
   const frontMat = new THREE.MeshBasicMaterial({
     map: frontTexture,
     toneMapped: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -3,
-    polygonOffsetUnits: -3,
   });
   const frontMesh = new THREE.Mesh(faceGeo, frontMat);
-  frontMesh.position.set(0, 0, cDepth + 0.004);
+  frontMesh.position.set(0, 0, cDepth + 0.008);
   cardMesh.add(frontMesh);
 
   // Back Face Screen Mesh (Side B)
@@ -455,13 +452,10 @@ export function createIdCardMesh(): {
   const backMat = new THREE.MeshBasicMaterial({
     map: backTexture,
     toneMapped: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -3,
-    polygonOffsetUnits: -3,
   });
   const backMesh = new THREE.Mesh(backFaceGeo, backMat);
   backMesh.rotation.y = Math.PI;
-  backMesh.position.set(0, 0, -0.004);
+  backMesh.position.set(0, 0, -0.008);
   cardMesh.add(backMesh);
 
   // Wireframe Edge Highlight with rounded filleted contours
@@ -476,7 +470,7 @@ export function createIdCardMesh(): {
 
   // Place card flat on table surface with flip rotation state
   cardMesh.rotation.x = -Math.PI / 2;
-  cardMesh.position.set(0, 0.008, 0);
+  cardMesh.position.set(0, 0.012, 0);
   group.add(cardMesh);
 
   let targetFlip = 0; // 0 for front, Math.PI for back
@@ -487,11 +481,14 @@ export function createIdCardMesh(): {
   };
 
   const updateCard = (delta: number) => {
-    matrixTimer += delta;
-    if (matrixTimer > 1.2) {
-      matrixTimer = 0;
-      currentExpiryCode = getRandomMatrixCode();
-      renderFrontCard(currentThemeHex);
+    // Only cycle cipher code every 2.8s when front face is visible, avoiding continuous GPU texture stalls
+    if (currentFlip < Math.PI / 3) {
+      matrixTimer += delta;
+      if (matrixTimer > 2.8) {
+        matrixTimer = 0;
+        currentExpiryCode = getRandomMatrixCode();
+        renderFrontCard(currentThemeHex);
+      }
     }
 
     // Smooth physical turnover flip animation over the horizontal axis
@@ -499,7 +496,7 @@ export function createIdCardMesh(): {
       currentFlip += (targetFlip - currentFlip) * 0.14;
       cardMesh.rotation.x = -Math.PI / 2 + currentFlip;
       const liftProgress = Math.sin((currentFlip / Math.PI) * Math.PI);
-      cardMesh.position.y = 0.008 + liftProgress * 0.45;
+      cardMesh.position.y = 0.012 + liftProgress * 0.45;
     }
   };
 

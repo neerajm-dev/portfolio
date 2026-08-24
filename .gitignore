@@ -49,3 +49,6 @@ feature_ideas.md
 
 # media & social content
 content/
+
+# playwright mcp
+.playwright-mcp/

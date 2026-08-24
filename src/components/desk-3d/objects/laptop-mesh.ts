@@ -223,59 +223,64 @@ function createTufLidBackTexture(): {
 }
 
 /**
- * Procedural Canvas Texture for Individual 3D Keycap Top Faces (Rendered once in White Mask)
+ * High-Performance Procedural Canvas Texture Cache for 3D Keycap Top Faces
  */
+const keyTextureCache = new Map<string, THREE.CanvasTexture>();
+
 function createKeyTopTexture(
   label: string,
   subLabel: string = "",
   isWASD: boolean = false,
   isSpecial: boolean = false
 ): THREE.CanvasTexture {
+  const cacheKey = `${label}|${subLabel}|${isWASD}|${isSpecial}`;
+  const existing = keyTextureCache.get(cacheKey);
+  if (existing) return existing;
+
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 128;
+  canvas.height = 128;
   const ctx = canvas.getContext("2d");
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
 
   if (!ctx) return texture;
 
   if (isWASD) {
     // Frosted Translucent WASD Top
     ctx.fillStyle = "#ecfdf5";
-    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillRect(0, 0, 128, 128);
 
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 10;
-    ctx.strokeRect(6, 6, 244, 244);
+    ctx.lineWidth = 5;
+    ctx.strokeRect(3, 3, 122, 122);
 
-    const wasdGrad = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
+    const wasdGrad = ctx.createRadialGradient(64, 64, 10, 64, 64, 60);
     wasdGrad.addColorStop(0, "#ffffff");
     wasdGrad.addColorStop(1, "#d1fae5");
     ctx.fillStyle = wasdGrad;
-    ctx.fillRect(10, 10, 236, 236);
+    ctx.fillRect(5, 5, 118, 118);
 
     ctx.fillStyle = "#021208";
-    ctx.font = "900 130px monospace";
+    ctx.font = "900 65px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, 128, 134);
+    ctx.fillText(label, 64, 67);
   } else {
     // Dark Matte Chiclet Top with High-Contrast White Legend
     ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillRect(0, 0, 128, 128);
 
     ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.lineWidth = 8;
-    ctx.strokeRect(6, 6, 244, 244);
+    ctx.lineWidth = 4;
+    ctx.strokeRect(3, 3, 122, 122);
 
     // Caps Lock Status LED indicator square on the right side
     if (label.includes("CAPS")) {
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "#ffffff";
-      ctx.shadowBlur = 12;
-      ctx.fillRect(212, 116, 24, 24);
-      ctx.shadowBlur = 0;
+      ctx.fillRect(106, 58, 12, 12);
     }
 
     ctx.fillStyle = "#ffffff";
@@ -283,38 +288,36 @@ function createKeyTopTexture(
     ctx.textBaseline = "middle";
 
     if (subLabel) {
-      ctx.font = "bold 44px monospace";
+      ctx.font = "bold 22px monospace";
       ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-      ctx.fillText(subLabel, 128, 76);
+      ctx.fillText(subLabel, 64, 38);
 
-      ctx.font = "bold 62px monospace";
+      ctx.font = "bold 31px monospace";
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(label, 128, 168);
+      ctx.fillText(label, 64, 84);
     } else {
       ctx.font =
         label.length > 6
-          ? "bold 36px monospace"
+          ? "bold 18px monospace"
           : label.length > 4
-          ? "bold 44px monospace"
+          ? "bold 22px monospace"
           : label.length > 2
-          ? "bold 56px monospace"
+          ? "bold 28px monospace"
           : label.length > 1
-          ? "bold 68px monospace"
-          : "bold 96px monospace";
-      ctx.fillText(label, 128, 128);
+          ? "bold 34px monospace"
+          : "bold 48px monospace";
+      ctx.fillText(label, 64, 64);
     }
 
     // Tactile homing notch underline on F, J, and Numpad 5
     if (label === "F" || label === "J" || (label === "5" && !subLabel)) {
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "#ffffff";
-      ctx.shadowBlur = 6;
-      ctx.fillRect(88, 204, 80, 10);
-      ctx.shadowBlur = 0;
+      ctx.fillRect(44, 102, 40, 5);
     }
   }
 
   texture.needsUpdate = true;
+  keyTextureCache.set(cacheKey, texture);
   return texture;
 }
 
@@ -1226,9 +1229,6 @@ export function createLaptopMesh(): {
     map: screenTexture,
     toneMapped: false,
     side: THREE.FrontSide,
-    polygonOffset: true,
-    polygonOffsetFactor: -2,
-    polygonOffsetUnits: -2,
   });
 
   // 8. PROCEDURAL TUF LID BACK TEXTURE (REAR FACE)
@@ -1237,9 +1237,6 @@ export function createLaptopMesh(): {
     map: tufLidBack.texture,
     toneMapped: false,
     side: THREE.DoubleSide,
-    polygonOffset: true,
-    polygonOffsetFactor: -4,
-    polygonOffsetUnits: -4,
   });
 
   // 9. SCULPTED TUF DISPLAY LID WITH 45° TOP CHAMFER CUTS & CENTER WEBCAM TAB
@@ -1298,10 +1295,8 @@ export function createLaptopMesh(): {
   // 10. INNER CRT DISPLAY SCREEN (FRONT FACE - POSITIONED FLUSH ON BEZEL)
   const screenPlaneGeo = new THREE.PlaneGeometry(4.16, 2.45);
   const screenMesh = new THREE.Mesh(screenPlaneGeo, screenFrontMat);
-  screenMesh.position.set(0, 1.42, 0.048);
+  screenMesh.position.set(0, 1.42, 0.052);
   lidPivot.add(screenMesh);
-
-
 
   // 11. REAR TUF LID ARMOR BACKPLATE WITH CYBER TRIANGLE EMBLEM (EXACT CHAMFERED SHAPE)
   const tufBackGeo = new THREE.ShapeGeometry(lidShape);
@@ -1318,7 +1313,7 @@ export function createLaptopMesh(): {
   tufBackGeo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
 
   const tufBackMesh = new THREE.Mesh(tufBackGeo, tufBackMat);
-  tufBackMesh.position.set(0, 0, -0.046);
+  tufBackMesh.position.set(0, 0, -0.050);
   tufBackMesh.rotation.y = Math.PI; // Face outwards to the back
   lidPivot.add(tufBackMesh);
 
@@ -1331,25 +1326,25 @@ export function createLaptopMesh(): {
     metalness: 0.9,
   });
   const camLens = new THREE.Mesh(camLensGeo, camLensMat);
-  camLens.position.set(0, 2.73, 0.046);
+  camLens.position.set(0, 2.73, 0.052);
   lidPivot.add(camLens);
 
   // Camera Status Indicator LED (Callout 3)
   const camLedGeo = new THREE.SphereGeometry(0.007, 6, 6);
   const camLedMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
   const camLed = new THREE.Mesh(camLedGeo, camLedMat);
-  camLed.position.set(0.048, 2.73, 0.046);
+  camLed.position.set(0.048, 2.73, 0.052);
   lidPivot.add(camLed);
 
   // Dual Array Beamforming Stereo Microphones (Callouts 1 & 2)
   const micMat = new THREE.MeshBasicMaterial({ color: 0x00220a });
   const micGeo = new THREE.BoxGeometry(0.024, 0.012, 0.01);
   const micL = new THREE.Mesh(micGeo, micMat);
-  micL.position.set(-0.16, 2.73, 0.046);
+  micL.position.set(-0.16, 2.73, 0.052);
   lidPivot.add(micL);
 
   const micR = new THREE.Mesh(micGeo, micMat);
-  micR.position.set(0.16, 2.73, 0.046);
+  micR.position.set(0.16, 2.73, 0.052);
   lidPivot.add(micR);
 
   // Dual Rubber Pill Cushions / Bumpers
@@ -1360,11 +1355,11 @@ export function createLaptopMesh(): {
   const bumperGeo = new THREE.BoxGeometry(0.38, 0.015, 0.012);
 
   const bumperL = new THREE.Mesh(bumperGeo, bumperMat);
-  bumperL.position.set(-1.0, 2.68, 0.044);
+  bumperL.position.set(-1.0, 2.68, 0.050);
   lidPivot.add(bumperL);
 
   const bumperR = new THREE.Mesh(bumperGeo, bumperMat);
-  bumperR.position.set(1.0, 2.68, 0.044);
+  bumperR.position.set(1.0, 2.68, 0.050);
   lidPivot.add(bumperR);
 
   return {

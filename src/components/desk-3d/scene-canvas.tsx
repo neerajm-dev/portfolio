@@ -37,6 +37,22 @@ interface SceneCanvasProps {
   caffeineLevel?: number;
 }
 
+const getAdaptiveCameraParams = (aspect: number) => {
+  if (aspect < 0.65) {
+    // Tall mobile portrait (e.g., iPhone 14/15/16 Pro, Galaxy S24, Pixel 8/9)
+    return { fov: 58, baseDist: 15.5, minDist: 5.5, maxDist: 38.0, targetElevation: 0.72 };
+  } else if (aspect < 0.85) {
+    // Standard mobile / tablet portrait
+    return { fov: 52, baseDist: 13.0, minDist: 5.0, maxDist: 40.0, targetElevation: 0.66 };
+  } else if (aspect < 1.15) {
+    // Square / iPad portrait
+    return { fov: 47, baseDist: 11.2, minDist: 4.8, maxDist: 42.0, targetElevation: 0.62 };
+  } else {
+    // Desktop / Landscape
+    return { fov: 42, baseDist: 9.4, minDist: 4.6, maxDist: 46.0, targetElevation: 0.58 };
+  }
+};
+
 export function SceneCanvas({
   onSelectObject,
   terminalLines,
@@ -116,7 +132,7 @@ export function SceneCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. OPTIMIZED SCENE & RENDERER SETUP (Gentle on GPU)
+    // 1. OPTIMIZED SCENE & RENDERER SETUP (Gentle on GPU with High-Precision Depth)
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
     // Atmospheric exponential distance fog
@@ -124,12 +140,15 @@ export function SceneCanvas({
 
     const initialWidth = Math.max(1, container.clientWidth || window.innerWidth || 1920);
     const initialHeight = Math.max(1, container.clientHeight || window.innerHeight || 1080);
+    const initialAspect = initialWidth / initialHeight;
+    const initialParams = getAdaptiveCameraParams(initialAspect);
 
+    // Tight clipping planes (0.4 to 140) dramatically improve mobile depth buffer accuracy and eliminate z-fighting
     const camera = new THREE.PerspectiveCamera(
-      42,
-      initialWidth / initialHeight,
-      0.1,
-      400
+      initialParams.fov,
+      initialAspect,
+      0.4,
+      140
     );
     const initialCamPos = new THREE.Vector3(0, 5.6, 7.6);
     const initialTarget = new THREE.Vector3(0, 0.8, -0.4);
@@ -140,17 +159,24 @@ export function SceneCanvas({
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        powerPreference: "default",
-        precision: "mediump",
+        powerPreference: "high-performance",
+        precision: "highp",
+        depth: true,
       });
     } catch {
       // Fallback if WebGL context creation fails
       return;
     }
 
-    renderer.setSize(initialWidth, initialHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    renderer.setSize(initialWidth, initialHeight, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.shadowMap.enabled = false;
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.top = "0";
+    renderer.domElement.style.left = "0";
+    renderer.domElement.style.display = "block";
     container.appendChild(renderer.domElement);
 
     // 2. STUDIO 4-POINT CYBER ATMOSPHERE LIGHTING (Balanced fill, key, rim & CRT glow)
@@ -173,7 +199,7 @@ export function SceneCanvas({
     scene.add(screenLight);
 
     // 3. MOUNT PROCEDURAL 3D OBJECTS & INFINITE GRID FLOOR
-    // Infinite Dark Cyber Ground Plane
+    // Infinite Dark Cyber Ground Plane (Physical separation at y = -5.48 prevents z-fighting with grid at -5.38)
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x030508,
       roughness: 0.95,
@@ -182,14 +208,14 @@ export function SceneCanvas({
     const floorGeo = new THREE.PlaneGeometry(420, 420);
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.set(0, -5.42, 0);
+    floorMesh.position.set(0, -5.48, 0);
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    // Infinite Cyberpunk Neon Floor Grid
+    // Infinite Cyberpunk Neon Floor Grid (Elevated cleanly 10cm above ground plane)
     const floorGridDivisions = 190;
     const floorGrid = new THREE.GridHelper(380, floorGridDivisions, 0x00ff66, 0x00280f);
-    floorGrid.position.set(0, -5.40, 0);
+    floorGrid.position.set(0, -5.38, 0);
     if (Array.isArray(floorGrid.material)) {
       floorGrid.material.forEach((m) => {
         m.transparent = true;
@@ -338,16 +364,16 @@ export function SceneCanvas({
 
     // 5. EVENT-DRIVEN SPHERICAL 3D ORBIT, PINCH-TO-ZOOM & INTERACTION
     const raycaster = new THREE.Raycaster();
-    const MIN_CAM_DIST = 4.6;
-    const MAX_CAM_DIST = 46.0;
+    let minCamDist = initialParams.minDist;
+    let maxCamDist = initialParams.maxDist;
     const lookTarget = new THREE.Vector3(0, 0.85, 1.0);
 
-    let targetCamDist = 9.4;
+    let targetCamDist = initialParams.baseDist;
     let targetAzimuth = 0;
-    let targetElevation = 0.58;
-    let currentCamDist = 9.4;
+    let targetElevation = initialParams.targetElevation;
+    let currentCamDist = initialParams.baseDist;
     let currentAzimuth = 0;
-    let currentElevation = 0.58;
+    let currentElevation = initialParams.targetElevation;
 
     let isDragging = false;
     let isSpinningHolo = false;
@@ -364,9 +390,12 @@ export function SceneCanvas({
     const activePointers = new Map<number, { x: number; y: number }>();
 
     const resetCamera = () => {
-      targetCamDist = 9.4;
+      const currentParams = getAdaptiveCameraParams(camera.aspect);
+      targetCamDist = currentParams.baseDist;
       targetAzimuth = 0;
-      targetElevation = 0.58;
+      targetElevation = currentParams.targetElevation;
+      minCamDist = currentParams.minDist;
+      maxCamDist = currentParams.maxDist;
     };
     resetCameraRef.current = resetCamera;
 
@@ -380,6 +409,11 @@ export function SceneCanvas({
         const pts = Array.from(activePointers.values());
         prevPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         totalTravelDist += 100; // Flag as multi-touch gesture
+        try {
+          container.releasePointerCapture(e.pointerId);
+        } catch {
+          // ignore
+        }
         return;
       }
 
@@ -422,10 +456,10 @@ export function SceneCanvas({
         const currPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         if (prevPinchDist > 0) {
           const deltaDist = currPinchDist - prevPinchDist;
-          // High-sensitivity responsive pinch zoom for mobile touchscreens
+          // Smooth responsive pinch zoom for mobile touchscreens
           targetCamDist = Math.max(
-            MIN_CAM_DIST,
-            Math.min(MAX_CAM_DIST, targetCamDist - deltaDist * 0.065)
+            minCamDist,
+            Math.min(maxCamDist, targetCamDist - deltaDist * 0.045)
           );
         }
         prevPinchDist = currPinchDist;
@@ -447,10 +481,10 @@ export function SceneCanvas({
           // Direct drag-rotation on the expanded holographic sphere
           hologram.addRotation(deltaX, deltaY);
         } else {
-          // Touch devices have smaller physical viewports — apply higher sensitivity for comfortable thumb swiping
+          // Touch devices have smaller viewports and higher DPI: calibrated sensitivity
           const isTouch = e.pointerType === "touch";
-          const rotSensX = isTouch ? 0.013 : 0.0065;
-          const rotSensY = isTouch ? 0.0085 : 0.0045;
+          const rotSensX = isTouch ? 0.0075 : 0.0065;
+          const rotSensY = isTouch ? 0.0055 : 0.0045;
 
           // True horizontal 360° orbital rotation (dragging right rotates camera clockwise)
           targetAzimuth -= deltaX * rotSensX;
@@ -538,8 +572,8 @@ export function SceneCanvas({
       e.preventDefault();
       const zoomDelta = e.deltaY * 0.007;
       targetCamDist = Math.max(
-        MIN_CAM_DIST,
-        Math.min(MAX_CAM_DIST, targetCamDist + zoomDelta)
+        minCamDist,
+        Math.min(maxCamDist, targetCamDist + zoomDelta)
       );
     };
 
@@ -558,7 +592,12 @@ export function SceneCanvas({
       if (!container || !renderer) return;
       const w = Math.max(1, container.clientWidth || window.innerWidth);
       const h = Math.max(1, container.clientHeight || window.innerHeight);
-      camera.aspect = w / h;
+      const newAspect = w / h;
+      const params = getAdaptiveCameraParams(newAspect);
+      camera.aspect = newAspect;
+      camera.fov = params.fov;
+      minCamDist = params.minDist;
+      maxCamDist = params.maxDist;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       renderer.render(scene, camera);
@@ -566,12 +605,42 @@ export function SceneCanvas({
     canvasElement.addEventListener("webglcontextlost", handleContextLost, false);
     canvasElement.addEventListener("webglcontextrestored", handleContextRestored, false);
 
-    // 7. ROBUST RESIZE OBSERVER (Handles container dimension changes reliably)
+    // 7. ROBUST RESIZE OBSERVER (Handles container dimension changes reliably without address bar jitter or fullscreen black flicker)
+    let lastObservedW = initialWidth;
+    let lastObservedH = initialHeight;
+    let resizeRafId: number | null = null;
+
+    const performResize = (w: number, h: number) => {
+      if (!renderer || !container || w <= 32 || h <= 32) return;
+      lastObservedW = w;
+      lastObservedH = h;
+
+      const newAspect = w / h;
+      const params = getAdaptiveCameraParams(newAspect);
+      camera.aspect = newAspect;
+      camera.fov = params.fov;
+      minCamDist = params.minDist;
+      maxCamDist = params.maxDist;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+      // 🟢 Immediate synchronous render in the resize frame so the canvas never flashes black
+      renderer.render(scene, camera);
+    };
+
     const updateDimensions = (w: number, h: number) => {
       if (!renderer || w <= 32 || h <= 32) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      // Ignore micro height shifts (< 14px) caused by mobile browser address bar sliding
+      const dw = Math.abs(w - lastObservedW);
+      const dh = Math.abs(h - lastObservedH);
+      if (dw === 0 && dh < 14) return;
+
+      if (resizeRafId !== null) {
+        cancelAnimationFrame(resizeRafId);
+      }
+      resizeRafId = requestAnimationFrame(() => {
+        resizeRafId = null;
+        performResize(w, h);
+      });
     };
 
     const handleWindowResize = () => {
@@ -581,6 +650,7 @@ export function SceneCanvas({
       updateDimensions(w, h);
     };
     window.addEventListener("resize", handleWindowResize);
+    document.addEventListener("fullscreenchange", handleWindowResize);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
@@ -660,8 +730,10 @@ export function SceneCanvas({
     // 10. THOROUGH CLEANUP TO PREVENT FAST-REFRESH VRAM / CONTEXT LEAKS
     return () => {
       cancelAnimationFrame(animationFrameId);
+      if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
       if (resizeObserver) resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleWindowResize);
       window.removeEventListener("resize", handleWindowResize);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerdown", handlePointerDown);

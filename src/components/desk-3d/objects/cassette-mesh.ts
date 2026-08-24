@@ -127,17 +127,23 @@ export function createCassetteMesh(): {
 
   let timer = 0;
   let lastDrawTime = 0;
+  let prevAudioState = true;
+
   const updateDeck = (delta: number, isAudioOn: boolean) => {
     timer += delta;
     if (isAudioOn) {
       reel1.rotation.y += delta * 2;
       reel2.rotation.y += delta * 2;
+      // Throttle GPU texture uploads to every 140ms (7 FPS for equalizer animation when audio is active)
+      if (timer - lastDrawTime > 0.14) {
+        lastDrawTime = timer;
+        drawEqualizer(true, timer, currentThemeHex);
+      }
+    } else if (prevAudioState) {
+      // Audio just toggled off: render static muted state once
+      drawEqualizer(false, 0, currentThemeHex);
     }
-    // Throttle GPU texture uploads to every 120ms (8 FPS for equalizer)
-    if (timer - lastDrawTime > 0.12) {
-      lastDrawTime = timer;
-      drawEqualizer(isAudioOn, timer, currentThemeHex);
-    }
+    prevAudioState = isAudioOn;
   };
 
   const setTheme = (theme: WorkstationTheme) => {

@@ -140,7 +140,7 @@ export function createDeskSurface(): THREE.Group {
     opacity: 0.16,
   });
   const padGrid = new THREE.LineSegments(gridGeo, gridMat);
-  padGrid.position.set(0, 0.016, 0);
+  padGrid.position.set(0, 0.022, 0);
   group.add(padGrid);
 
   // 4. Heavy-Duty Industrial Cyberpunk Desk Legs & Support Frame

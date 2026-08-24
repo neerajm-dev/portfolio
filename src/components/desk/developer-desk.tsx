@@ -13,7 +13,7 @@ import { AudioDeckProp } from "./props/audio-deck-prop";
 import { CoffeeMugProp } from "./props/coffee-mug-prop";
 
 import { AsciiIdCard } from "@/components/ascii/ascii-id-card";
-import { KtccModal } from "./modals/ktcc-modal";
+import { PhoneModal } from "./modals/phone-modal";
 import { NotesModal } from "./modals/notes-modal";
 import { CoffeeModal } from "./modals/coffee-modal";
 import { FullscreenTerminalModal } from "./modals/fullscreen-terminal-modal";
@@ -250,7 +250,7 @@ export function DeveloperDesk() {
             {/* Render Selected Focused Prop Modal */}
             <div onClick={(e) => e.stopPropagation()}>
               {activeModal === "id-card" && <AsciiIdCard />}
-              {activeModal === "phone" && <KtccModal onClose={closeModal} />}
+              {activeModal === "phone" && <PhoneModal onClose={closeModal} />}
               {activeModal === "sticky-note" && <NotesModal onClose={closeModal} />}
               {activeModal === "coffee" && <CoffeeModal onClose={closeModal} />}
               {activeModal === "laptop-modal" && (

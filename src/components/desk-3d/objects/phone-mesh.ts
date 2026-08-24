@@ -21,17 +21,33 @@ export function createPhoneMesh(): {
   const ctx = canvas.getContext("2d");
 
   if (ctx) {
-    // Deep OLED Black Standby
-    ctx.fillStyle = "#020408";
+    // Cyber OLED Wallpaper
+    ctx.fillStyle = "#03080e";
     ctx.fillRect(0, 0, 480, 960);
 
-    // Subtle dark glass reflection gradient
-    const grad = ctx.createLinearGradient(0, 0, 480, 960);
-    grad.addColorStop(0, "rgba(255, 255, 255, 0.03)");
-    grad.addColorStop(0.5, "rgba(255, 255, 255, 0.005)");
-    grad.addColorStop(1, "rgba(0, 0, 0, 0.2)");
-    ctx.fillStyle = grad;
+    // Radial Neon Glow
+    const bgGlow = ctx.createRadialGradient(240, 480, 20, 240, 480, 320);
+    bgGlow.addColorStop(0, "rgba(0, 255, 102, 0.14)");
+    bgGlow.addColorStop(0.6, "rgba(0, 255, 102, 0.03)");
+    bgGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bgGlow;
     ctx.fillRect(0, 0, 480, 960);
+
+    // Subtle Grid Matrix
+    ctx.strokeStyle = "rgba(0, 255, 102, 0.06)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < 480; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 960);
+      ctx.stroke();
+    }
+    for (let y = 0; y < 960; y += 32) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(480, y);
+      ctx.stroke();
+    }
 
     // Dynamic Island Silhouette (Top Center)
     ctx.fillStyle = "#000000";
@@ -40,16 +56,72 @@ export function createPhoneMesh(): {
     ctx.fill();
 
     // Front Camera Lens Dot
-    ctx.fillStyle = "#0a0e16";
+    ctx.fillStyle = "#0a1520";
     ctx.beginPath();
     ctx.arc(205, 42, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ambient Sensor Dot
-    ctx.fillStyle = "#04070c";
+    // Status Bar Telemetry
+    ctx.font = "bold 20px monospace";
+    ctx.fillStyle = "#a1a1aa";
+    ctx.fillText("19:00", 38, 52);
+    ctx.fillStyle = "#00ff66";
+    ctx.fillText("5G  100%", 350, 52);
+
+    // Lockscreen Clock Widget
+    ctx.textAlign = "center";
+    ctx.font = "900 68px monospace";
+    ctx.fillStyle = "#00ff66";
+    ctx.shadowColor = "#00ff66";
+    ctx.shadowBlur = 18;
+    ctx.fillText("19:00", 240, 240);
+    ctx.shadowBlur = 0;
+
+    ctx.font = "bold 16px monospace";
+    ctx.fillStyle = "#71717a";
+    ctx.fillText("KERALA, IN • 28°C", 240, 280);
+
+    // 🏎️ KTCC Flagship App Icon Box
+    ctx.fillStyle = "#001a0a";
+    ctx.strokeStyle = "#00ff66";
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(275, 42, 4.5, 0, Math.PI * 2);
+    ctx.roundRect(175, 420, 130, 130, 32);
     ctx.fill();
+    ctx.stroke();
+
+    // KTCC Badge Text
+    ctx.font = "900 34px monospace";
+    ctx.fillStyle = "#00ff66";
+    ctx.shadowColor = "#00ff66";
+    ctx.shadowBlur = 14;
+    ctx.fillText("KTCC", 240, 498);
+    ctx.shadowBlur = 0;
+
+    // Notification Badge Dot
+    ctx.fillStyle = "#00ff66";
+    ctx.beginPath();
+    ctx.arc(295, 430, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#000000";
+    ctx.font = "900 16px monospace";
+    ctx.fillText("1", 295, 436);
+
+    // App Label
+    ctx.font = "bold 20px monospace";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("KTCC Live", 240, 590);
+
+    ctx.font = "bold 14px monospace";
+    ctx.fillStyle = "#00ff66";
+    ctx.fillText("[ TAP TO LAUNCH ]", 240, 620);
+
+    // Bottom Navigation Bar Pill
+    ctx.fillStyle = "#52525b";
+    ctx.beginPath();
+    ctx.roundRect(160, 920, 160, 10, 5);
+    ctx.fill();
+    ctx.textAlign = "left";
   }
 
   const screenTexture = new THREE.CanvasTexture(canvas);
@@ -109,12 +181,9 @@ export function createPhoneMesh(): {
   const screenMat = new THREE.MeshBasicMaterial({
     map: screenTexture,
     toneMapped: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -3,
-    polygonOffsetUnits: -3,
   });
   const screenMesh = new THREE.Mesh(screenGeo, screenMat);
-  screenMesh.position.set(0, 0, pDepth + 0.016);
+  screenMesh.position.set(0, 0, pDepth + 0.022);
   phoneMesh.add(screenMesh);
 
   // Wireframe Chassis Edge Highlights
