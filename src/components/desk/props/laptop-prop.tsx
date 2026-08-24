@@ -88,7 +88,7 @@ export function LaptopProp({ onExpand }: LaptopPropProps) {
           content: (
             <div className="space-y-0.5 text-[9.5px] sm:text-[10.5px] text-[#00ff66]/90">
               <div className="text-[#00ff66] font-bold">NAME: NEERAJ M</div>
-              <div>ROLE: Solo Architect &amp; Systems Engineer ({DEVELOPER_PROFILE.age}yo)</div>
+              <div>ROLE: Solo Builder &amp; Systems Engineer ({DEVELOPER_PROFILE.age}yo)</div>
               <div>EDUCATION: Pursuing BCA @ SNCT (Kerala, India 🇮🇳)</div>
               <div>FOCUS: Next.js 15, Android Hybrid Engines, Supabase PostgreSQL</div>
               <div>BUDGET: Strict $0.00/mo Cloud Infrastructure Specialist</div>

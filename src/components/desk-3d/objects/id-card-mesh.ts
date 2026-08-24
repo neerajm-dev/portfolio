@@ -168,7 +168,7 @@ export function createIdCardMesh(): {
 
     fctx.fillStyle = themeHex;
     fctx.font = "14px monospace";
-    fctx.fillText("Solo Architect & Systems Engineer. Zero-cloud-cost specialist.", 36, 356);
+    fctx.fillText("Solo Builder & Systems Engineer. Zero-cloud-cost specialist.", 36, 356);
     fctx.fillText("Building scalable full-stack Android, Web & Cloud architectures.", 36, 378);
 
     // Dynamic Live Cipher Strip

@@ -32,7 +32,7 @@ export function Footer() {
             </span>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed max-w-sm">
-            Solo Systems Architect & Full-Stack Builder. Passionate about multi-platform Android engines, Next.js 15, and $0 cloud infrastructure.
+            Solo Builder & Systems Engineer. Passionate about multi-platform Android engines, Next.js 15, and $0 cloud infrastructure.
           </p>
           <div className="text-[11px] text-gray-500 font-mono">
             Location: Kollam, Kerala, India (IST) • BCA @ SNCT

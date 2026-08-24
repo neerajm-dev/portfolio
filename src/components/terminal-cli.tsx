@@ -102,7 +102,7 @@ export function TerminalCli() {
           content: (
             <div className="space-y-1.5 text-xs md:text-sm font-mono text-gray-300">
               <div className="text-[#00f0ff] font-bold">NAME: Neeraj M</div>
-              <div>ROLE: Solo Systems Architect & Full-Stack Engineer (Age {DEVELOPER_PROFILE.age})</div>
+              <div>ROLE: Solo Builder & Systems Engineer (Age {DEVELOPER_PROFILE.age})</div>
               <div>EDUCATION: Pursuing BCA @ Sree Narayana College of Technology (SNCT), Kollam</div>
               <div>FOCUS: Next.js 15, Android Hybrid Engines, PostgreSQL RLS & $0 Cloud Infrastructure</div>
               <div className="text-[#10b981] font-bold mt-1">

@@ -10,14 +10,33 @@ import { PhoneModal } from "@/components/desk/modals/phone-modal";
 import { NotesModal } from "@/components/desk/modals/notes-modal";
 import { CoffeeModal } from "@/components/desk/modals/coffee-modal";
 
-import { Volume2, VolumeX, X, HelpCircle, Terminal, CornerDownLeft, Sparkles, RotateCcw, Palette, Smartphone, Keyboard } from "lucide-react";
+import { Volume2, VolumeX, X, HelpCircle, Terminal, CornerDownLeft, Sparkles, RotateCcw, Palette, Smartphone, Keyboard, Type } from "lucide-react";
 import { CustomCursor } from "@/components/ui/custom-cursor";
 import { WORKSTATION_THEMES, WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
+import {
+  TERMINAL_FONTS,
+  DEFAULT_TERMINAL_FONT,
+  TerminalFont,
+  buildFontPickerLines,
+  findTerminalFont,
+} from "@/lib/terminal-fonts";
 import { DEVELOPER_PROFILE } from "@/lib/constants";
 
 type ModalType = "none" | "id-card" | "phone" | "sticky-note" | "coffee";
 
-const QUICK_COMMANDS = ["help", "whoami", "ktcc", "coffee", "mouse", "brotoraise", "stack", "socials", "color", "reset", "clear"];
+const QUICK_COMMANDS = [
+  "help",
+  "whoami",
+  "ktcc",
+  "coffee",
+  "mouse",
+  "font",
+  "color",
+  "stack",
+  "socials",
+  "reset",
+  "clear",
+];
 const DPI_PRESETS = [800, 1600, 2400, 3200, 6400];
 
 const buildColorPickerLines = (selectedIndex: number, currentActiveId: string): string[] => {
@@ -93,7 +112,7 @@ function LiveClock({ themeHex }: { themeHex: string }) {
   }, []);
 
   return (
-    <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-[4px] flex items-center gap-2.5 text-[10px] sm:text-xs">
+    <div className="bg-transparent px-1.5 py-1 flex items-center gap-2.5 text-[10px] sm:text-xs select-none">
       <div className="flex items-center gap-1.5">
         <span
           className="w-1.5 h-1.5 rounded-full animate-pulse"
@@ -150,7 +169,7 @@ function FpsSparkline({ themeHex }: { themeHex: string }) {
 
   return (
     <div
-      className="bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-[4px] flex items-center gap-2 select-none"
+      className="bg-transparent px-1.5 py-1 flex items-center gap-2 select-none"
       title={`3D Spatial Engine: ${fps} FPS // ${(1000 / Math.max(1, fps)).toFixed(1)}ms frame time`}
     >
       <svg width="34" height="13" className="overflow-visible">
@@ -226,7 +245,22 @@ export function DeveloperDesk3D() {
   const dpiIndexRef = useRef(3); // Default 3200 DPI
 
   const [activeTheme, setActiveTheme] = useState<WorkstationTheme>(DEFAULT_THEME);
-  const [pickerMode, setPickerMode] = useState<"none" | "color">("none");
+  const [activeFont, setActiveFont] = useState<TerminalFont>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("neeraj_workstation_font");
+        if (saved) {
+          const matched = findTerminalFont(saved);
+          if (matched) return matched;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return DEFAULT_TERMINAL_FONT;
+  });
+  const previousFontRef = useRef<TerminalFont>(DEFAULT_TERMINAL_FONT);
+  const [pickerMode, setPickerMode] = useState<"none" | "color" | "font">("none");
   const [pickerIndex, setPickerIndex] = useState(0);
   const [showMobileInput, setShowMobileInput] = useState(false);
   const previousThemeRef = useRef<WorkstationTheme>(DEFAULT_THEME);
@@ -319,10 +353,38 @@ export function DeveloperDesk3D() {
           responseLine = `[ERR] Unknown color: "${arg}". Available: ${WORKSTATION_THEMES.map((t) => t.id).join(", ")}. Or type 'color' for interactive menu.`;
         }
       }
+    } else if (primary === "font" || primary === "typography") {
+      if (!arg) {
+        // Enter interactive font picker mode with live preview
+        previousFontRef.current = activeFont;
+        const currIdx = Math.max(0, TERMINAL_FONTS.findIndex((f) => f.id === activeFont.id));
+        setPickerIndex(currIdx);
+        setPickerMode("font");
+        const menuLines = buildFontPickerLines(currIdx, activeFont.id);
+        setTerminalLines((prev) => [
+          ...prev.slice(-6),
+          `[neeraj@sys ~]$ ${cmdStr}`,
+          ...menuLines,
+        ]);
+        setInput("");
+        return;
+      } else {
+        // Direct command: font <name>
+        const matched = findTerminalFont(arg);
+        if (matched) {
+          setActiveFont(matched);
+          try {
+            localStorage.setItem("neeraj_workstation_font", matched.id);
+          } catch {}
+          responseLine = `[OK] Terminal font changed to ${matched.name.toUpperCase()} (${matched.personality})`;
+        } else {
+          responseLine = `[ERR] Unknown font: "${arg}". Available: ${TERMINAL_FONTS.map((f) => f.id).join(", ")}. Or type 'font' for interactive menu.`;
+        }
+      }
     } else {
       switch (clean) {
         case "help":
-          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, mouse, brotoraise, stack, socials, color, reset, clear";
+          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, mouse, font, color, brotoraise, stack, socials, reset, clear";
           break;
         case "whoami":
           responseLine = `[WHOAMI] Neeraj M (${DEVELOPER_PROFILE.age}yo) // BCA @ SNCT Kollam, Kerala`;
@@ -336,7 +398,7 @@ export function DeveloperDesk3D() {
           responseLine = `[MOUSE] Tactical Gaming Mouse // ${DPI_PRESETS[dpiIndexRef.current % DPI_PRESETS.length]} DPI // 1000Hz Optical Sensor // Braided USB-A (3D Model by jerard27, CC BY 4.0)`;
           break;
         case "credits":
-          responseLine = "[CREDITS] 3D Assets: Gaming Mouse by jerard27 (CC BY 4.0 via Sketchfab) // Built by Neeraj M";
+          responseLine = "[CREDITS] 3D Models: Gaming Mouse by jerard27 (CC BY 4.0), Mobile Phone by Alain Sorazu (CC BY-SA 4.0) // Architecture by Neeraj M";
           break;
         case "ktcc":
         case "phone":
@@ -391,7 +453,7 @@ export function DeveloperDesk3D() {
     setCommandHistory((prev) => [...prev, cmdStr]);
     setHistoryIndex(-1);
     setInput("");
-  }, [activeTheme, handleResetCamera]);
+  }, [activeTheme, activeFont, handleResetCamera]);
 
   // Global Keyboard Listener — Streams every keypress directly into the 3D laptop screen
   useEffect(() => {
@@ -486,6 +548,88 @@ export function DeveloperDesk3D() {
           setTerminalLines((prev) => [
             ...prev,
             `[CANCEL] Restored previous profile: ${reverted.name.toUpperCase()}`,
+          ]);
+          return;
+        }
+
+        return;
+      }
+
+      // 0b. Interactive CLI Font Picker Mode
+      if (pickerMode === "font") {
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const nextIdx = (pickerIndex - 1 + TERMINAL_FONTS.length) % TERMINAL_FONTS.length;
+          setPickerIndex(nextIdx);
+          const nextFont = TERMINAL_FONTS[nextIdx];
+          setActiveFont(nextFont); // Live preview instantaneously on the 3D screen!
+          sound.playClick(1.3);
+          const menuLines = buildFontPickerLines(nextIdx, previousFontRef.current.id);
+          setTerminalLines((prev) => [
+            ...prev.slice(0, -menuLines.length),
+            ...menuLines,
+          ]);
+          return;
+        }
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const nextIdx = (pickerIndex + 1) % TERMINAL_FONTS.length;
+          setPickerIndex(nextIdx);
+          const nextFont = TERMINAL_FONTS[nextIdx];
+          setActiveFont(nextFont); // Live preview instantaneously on the 3D screen!
+          sound.playClick(1.3);
+          const menuLines = buildFontPickerLines(nextIdx, previousFontRef.current.id);
+          setTerminalLines((prev) => [
+            ...prev.slice(0, -menuLines.length),
+            ...menuLines,
+          ]);
+          return;
+        }
+
+        const keyNum = parseInt(e.key, 10);
+        if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= TERMINAL_FONTS.length) {
+          e.preventDefault();
+          const nextIdx = keyNum - 1;
+          setPickerIndex(nextIdx);
+          const nextFont = TERMINAL_FONTS[nextIdx];
+          setActiveFont(nextFont);
+          sound.playClick(1.3);
+          const menuLines = buildFontPickerLines(nextIdx, previousFontRef.current.id);
+          setTerminalLines((prev) => [
+            ...prev.slice(0, -menuLines.length),
+            ...menuLines,
+          ]);
+          return;
+        }
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const chosen = TERMINAL_FONTS[pickerIndex];
+          setActiveFont(chosen);
+          try {
+            localStorage.setItem("neeraj_workstation_font", chosen.id);
+          } catch {
+            // ignore
+          }
+          setPickerMode("none");
+          sound.playNodePulse();
+          setTerminalLines((prev) => [
+            ...prev,
+            `[OK] Font saved: ${chosen.name.toUpperCase()} (${chosen.personality})`,
+          ]);
+          return;
+        }
+
+        if (e.key === "Escape") {
+          e.preventDefault();
+          const reverted = previousFontRef.current;
+          setActiveFont(reverted);
+          setPickerMode("none");
+          sound.playClick();
+          setTerminalLines((prev) => [
+            ...prev,
+            `[CANCEL] Restored previous font: ${reverted.name.toUpperCase()}`,
           ]);
           return;
         }
@@ -898,23 +1042,25 @@ export function DeveloperDesk3D() {
           mouseTriggerCount={mouseTriggerCount}
           theme={activeTheme}
           caffeineLevel={caffeine}
+          activeFont={activeFont}
+          isPickerActive={pickerMode !== "none"}
         />
       </motion.div>
 
-      {/* 🟢 TOP-LEFT LIVE TELEMETRY HUD (LOCATION, TIME & DATE) */}
-      <div className="fixed top-3 left-3 z-30 flex items-center pointer-events-auto">
+      {/* 🟢 TOP-LEFT LIVE TELEMETRY HUD (LOCATION, TIME & DATE) - ALWAYS CRISP & VISIBLE */}
+      <div className="fixed top-3 left-3 z-[60] flex items-center pointer-events-auto">
         <LiveClock themeHex={activeTheme.hex} />
       </div>
 
-      {/* 🟢 TOP-RIGHT WORKSPACE CONTROLS (FPS SPARKLINE, RESET, SFX & GUIDE) */}
-      <div className="fixed top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
+      {/* 🟢 TOP-RIGHT WORKSPACE CONTROLS (FPS SPARKLINE, RESET, SFX & GUIDE) - ALWAYS ACCESSIBLE */}
+      <div className="fixed top-3 right-3 z-[60] flex items-center gap-2 pointer-events-auto">
         {/* Real-time Render & FPS Telemetry Sparkline */}
         <FpsSparkline themeHex={activeTheme.hex} />
 
         {/* Reset Camera View Button */}
         <button
           onClick={handleResetCamera}
-          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
+          className="bg-transparent hover:bg-white/10 p-1.5 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
             color: activeTheme.hex,
           }}
@@ -929,7 +1075,7 @@ export function DeveloperDesk3D() {
             const next = sound.toggle();
             setSoundEnabled(next);
           }}
-          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
+          className="bg-transparent hover:bg-white/10 p-1.5 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
             color: activeTheme.hex,
           }}
@@ -941,7 +1087,7 @@ export function DeveloperDesk3D() {
         {/* Guide / Help Button */}
         <button
           onClick={() => setShowHelp((prev) => !prev)}
-          className="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
+          className="bg-transparent hover:bg-white/10 p-1.5 rounded-[4px] transition-all cursor-pointer flex items-center justify-center active:scale-95"
           style={{
             color: activeTheme.hex,
           }}
@@ -951,7 +1097,7 @@ export function DeveloperDesk3D() {
         </button>
       </div>
 
-      {/* 🟢 FOCUSED MODAL OVERLAYS */}
+      {/* 🟢 FOCUSED MODAL OVERLAYS (HIGH-PERFORMANCE ZERO-BLUR SCRIM) */}
       <AnimatePresence>
         {activeModal !== "none" && (
           <motion.div
@@ -960,43 +1106,46 @@ export function DeveloperDesk3D() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={closeModal}
-            className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px] flex flex-col items-center justify-center p-3 sm:p-6"
+            className="fixed inset-0 z-50 bg-black/60 flex flex-col items-center justify-center p-3 sm:p-6"
           >
             {/* Selected Modal */}
-            <div onClick={(e) => e.stopPropagation()} className="w-full flex items-center justify-center">
-              {activeModal === "id-card" && (
-                <AsciiIdCard
-                  initialFacing={idCardFacing}
-                  onFacingChange={setIdCardFacing}
-                  theme={activeTheme}
-                />
-              )}
-              {activeModal === "phone" && (
-                <PhoneModal
-                  onClose={closeModal}
-                  theme={activeTheme}
-                  onOpenTerminal={() => {
-                    closeModal();
-                    handleSelectObject("laptop");
-                  }}
-                  onOpenIdCard={() => {
-                    setActiveModal("id-card");
-                  }}
-                />
-              )}
-              {activeModal === "sticky-note" && (
-                <NotesModal onClose={closeModal} theme={activeTheme} />
-              )}
-              {activeModal === "coffee" && (
-                <CoffeeModal
-                  onClose={closeModal}
-                  theme={activeTheme}
-                  onInteracted={() => {
-                    hasDonatedOrInteractedRef.current = true;
-                  }}
-                />
-              )}
-            </div>
+            {activeModal === "phone" ? (
+              <PhoneModal
+                onClose={closeModal}
+                theme={activeTheme}
+                onOpenTerminal={() => {
+                  closeModal();
+                  handleSelectObject("laptop");
+                }}
+                onOpenIdCard={() => {
+                  setActiveModal("id-card");
+                }}
+              />
+            ) : (
+              <div className="w-full flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-auto">
+                  {activeModal === "id-card" && (
+                    <AsciiIdCard
+                      initialFacing={idCardFacing}
+                      onFacingChange={setIdCardFacing}
+                      theme={activeTheme}
+                    />
+                  )}
+                  {activeModal === "sticky-note" && (
+                    <NotesModal onClose={closeModal} theme={activeTheme} />
+                  )}
+                  {activeModal === "coffee" && (
+                    <CoffeeModal
+                      onClose={closeModal}
+                      theme={activeTheme}
+                      onInteracted={() => {
+                        hasDonatedOrInteractedRef.current = true;
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -1009,7 +1158,7 @@ export function DeveloperDesk3D() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowHelp(false)}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[3px] flex items-center justify-center p-3 sm:p-4"
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
@@ -1176,6 +1325,10 @@ export function DeveloperDesk3D() {
                       <span style={{ color: activeTheme.hex }}>History / Live Theme Preview</span>
                     </div>
                     <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
+                      <span className="font-bold text-white">[font / typography]</span>
+                      <span style={{ color: activeTheme.hex }}>Monospace Font Switcher</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1.5" style={{ borderColor: `${activeTheme.hex}26` }}>
                       <span className="font-bold text-white">[color / theme]</span>
                       <span style={{ color: activeTheme.hex }}>Interactive RGB Theme Picker</span>
                     </div>
@@ -1197,7 +1350,7 @@ export function DeveloperDesk3D() {
                   // TRY INSTANT COMMANDS:
                 </div>
                 <div className="flex flex-wrap gap-1 text-[10px]">
-                  {["whoami", "ktcc", "stack", "color", "socials", "reset", "clear"].map((c) => (
+                  {["whoami", "ktcc", "mouse", "font", "color", "stack", "socials", "reset", "clear"].map((c) => (
                     <button
                       key={c}
                       type="button"

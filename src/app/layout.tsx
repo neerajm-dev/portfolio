@@ -33,12 +33,13 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://neerajm.vercel.app"),
-  title: "Neeraj M // Solo Systems Architect & Full-Stack Engineer",
+  title: "Neeraj M // Solo Builder & Systems Engineer",
   description:
-    `Personal developer portfolio of Neeraj M (${DEVELOPER_PROFILE.age}yo Systems Architect & Full-Stack Builder). Creator of KTCC Platform, Next.js 15, Android Hybrid Engines, and $0 Cloud Infrastructure.`,
+    `Personal developer portfolio of Neeraj M (${DEVELOPER_PROFILE.age}yo Solo Builder & Systems Engineer). Creator of KTCC Platform, Next.js 15, Android Hybrid Engines, and $0 Cloud Infrastructure.`,
   keywords: [
     "Neeraj M",
-    "Systems Architect",
+    "Solo Builder",
+    "Systems Engineer",
     "Full-Stack Developer",
     "Next.js 15",
     "Supabase",
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Neeraj M", url: "https://neerajm.vercel.app" }],
   creator: "Neeraj M",
   openGraph: {
-    title: "Neeraj M // Systems Architect & Full-Stack Engineer",
+    title: "Neeraj M // Solo Builder & Systems Engineer",
     description:
       "Architecting Production Platforms from Scratch. Full-Stack Android & Cloud Platforms with $0 Infrastructure.",
     url: "https://neerajm.vercel.app",
@@ -69,9 +70,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Neeraj M // Systems Architect",
+    title: "Neeraj M // Solo Builder & Systems Engineer",
     description:
-      "Architecting Production Platforms from Scratch. $0 Cloud Infrastructure Specialist.",
+      "Building Production Platforms from Scratch. $0 Cloud Infrastructure Specialist.",
     creator: "@neerajm_dev",
     images: ["/avatar-neeraj.png"],
   },

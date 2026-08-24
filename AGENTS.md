@@ -15,7 +15,7 @@ When in doubt, **answer first, act later** — ask if the user wants you to make
 ## Developer Persona & Project Context
 
 - **Developer:** **Neeraj M**
-- **Role:** Solo Architect & Systems Engineer
+- **Role:** Solo Builder & Systems Engineer
 - **Profile / Credentials:**
   - 19 years old, pursuing BCA @ SNCT (Kerala, India)
   - Full-Stack Android & Cloud Platforms Builder

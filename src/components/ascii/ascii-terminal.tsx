@@ -74,7 +74,7 @@ export function AsciiTerminal() {
           type: "output",
           content: (
             <div className="space-y-1 text-xs">
-              <div>NAME: Neeraj M ({DEVELOPER_PROFILE.age}yo Systems Architect)</div>
+              <div>NAME: Neeraj M ({DEVELOPER_PROFILE.age}yo Solo Builder & Systems Engineer)</div>
               <div>EDUCATION: BCA @ Sree Narayana College of Technology, Kollam, Kerala</div>
               <div>SPECIALTY: $0 Cloud Platforms, Next.js 15, Android Hybrid Engines, PostgreSQL RLS</div>
               <div className="font-bold mt-1">&quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;</div>

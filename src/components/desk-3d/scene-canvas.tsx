@@ -16,6 +16,7 @@ import { createHologramSphere } from "./objects/hologram-sphere";
 import { createMouseMesh } from "./objects/mouse-mesh";
 
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
+import { TerminalFont, DEFAULT_TERMINAL_FONT } from "@/lib/terminal-fonts";
 
 export type InteractivePropId =
   | "id-card"
@@ -39,6 +40,8 @@ interface SceneCanvasProps {
   mouseTriggerCount?: number;
   theme?: WorkstationTheme;
   caffeineLevel?: number;
+  activeFont?: TerminalFont;
+  isPickerActive?: boolean;
 }
 
 const getAdaptiveCameraParams = (aspect: number) => {
@@ -69,10 +72,18 @@ export function SceneCanvas({
   mouseTriggerCount = 0,
   theme = DEFAULT_THEME,
   caffeineLevel = 100,
+  activeFont = DEFAULT_TERMINAL_FONT,
+  isPickerActive = false,
 }: SceneCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const updateScreenRef = useRef<
-    ((lines?: string[], currentInput?: string, themeHex?: string) => void) | null
+    (
+      lines?: string[],
+      currentInput?: string,
+      themeHex?: string,
+      font?: TerminalFont,
+      isPickerActive?: boolean
+    ) => void
   >(null);
   const setCardFacingRef = useRef<((facing: "front" | "back") => void) | null>(null);
   const resetCameraRef = useRef<(() => void) | null>(null);
@@ -87,6 +98,8 @@ export function SceneCanvas({
   const currentInputRef = useRef(currentInput);
   const idCardFacingRef = useRef(idCardFacing);
   const themeRef = useRef(theme);
+  const activeFontRef = useRef(activeFont);
+  const isPickerActiveRef = useRef(isPickerActive);
 
   useEffect(() => {
     onReadyRef.current = onReady;
@@ -133,10 +146,18 @@ export function SceneCanvas({
   useEffect(() => {
     terminalLinesRef.current = terminalLines;
     currentInputRef.current = currentInput;
+    activeFontRef.current = activeFont;
+    isPickerActiveRef.current = isPickerActive;
     if (updateScreenRef.current) {
-      updateScreenRef.current(terminalLines, currentInput, themeRef.current.hex);
+      updateScreenRef.current(
+        terminalLines,
+        currentInput,
+        themeRef.current.hex,
+        activeFontRef.current,
+        isPickerActive
+      );
     }
-  }, [terminalLines, currentInput]);
+  }, [terminalLines, currentInput, activeFont, isPickerActive]);
 
   useEffect(() => {
     onSelectObjectRef.current = onSelectObject;
@@ -277,7 +298,12 @@ export function SceneCanvas({
     laptop.group.position.set(0, 0.02, 1.75);
     scene.add(laptop.group);
     updateScreenRef.current = laptop.updateScreenTexture;
-    laptop.updateScreenTexture(terminalLinesRef.current, currentInputRef.current);
+    laptop.updateScreenTexture(
+      terminalLinesRef.current,
+      currentInputRef.current,
+      themeRef.current.hex,
+      activeFontRef.current
+    );
 
     const idCard = createIdCardMesh();
     idCard.group.position.set(-3.8, 0.028, 2.6);
@@ -291,7 +317,7 @@ export function SceneCanvas({
     triggerMouseClickRef.current = mouse.triggerClick;
 
     const phone = createPhoneMesh();
-    phone.group.position.set(3.70, 0.028, 0.90);
+    phone.group.position.set(3.96, 0.028, 0.88);
     phone.group.scale.set(0.80, 0.80, 0.80);
     phone.group.rotation.y = -Math.PI / 16;
     scene.add(phone.group);
@@ -349,6 +375,7 @@ export function SceneCanvas({
       laptop.setTheme(newTheme);
       idCard.setTheme(newTheme);
       mouse.setTheme(newTheme);
+      phone.setTheme(newTheme);
       coffee.setTheme(newTheme);
       cassette.setTheme(newTheme);
       notes.setTheme(newTheme);
@@ -426,6 +453,7 @@ export function SceneCanvas({
 
     const handlePointerDown = (e: PointerEvent) => {
       if (isPausedRef.current) return;
+      mouse.triggerClick();
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       maxPointersInGesture = Math.max(maxPointersInGesture, activePointers.size);
 
@@ -501,6 +529,9 @@ export function SceneCanvas({
         const deltaY = e.clientY - previousPointerY;
         const moveDist = Math.hypot(deltaX, deltaY);
         totalTravelDist += moveDist;
+
+        // 🟢 Forward real-time drag motion to 3D mouse kinematics
+        mouse.onPointerMove(deltaX, deltaY);
 
         if (isSpinningHolo) {
           // Direct drag-rotation on the expanded holographic sphere
@@ -601,6 +632,33 @@ export function SceneCanvas({
         Math.min(maxCamDist, targetCamDist + zoomDelta)
       );
     };
+
+    let lastGlobalPointerX = 0;
+    let lastGlobalPointerY = 0;
+    let hasGlobalPointerInit = false;
+
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (!hasGlobalPointerInit) {
+        lastGlobalPointerX = e.clientX;
+        lastGlobalPointerY = e.clientY;
+        hasGlobalPointerInit = true;
+        return;
+      }
+      const dx = e.movementX !== undefined && e.movementX !== 0 ? e.movementX : e.clientX - lastGlobalPointerX;
+      const dy = e.movementY !== undefined && e.movementY !== 0 ? e.movementY : e.clientY - lastGlobalPointerY;
+      lastGlobalPointerX = e.clientX;
+      lastGlobalPointerY = e.clientY;
+
+      if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+        mouse.onPointerMove(dx, dy);
+      }
+    };
+    window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
+
+    const handleGlobalPointerDown = () => {
+      mouse.triggerClick();
+    };
+    window.addEventListener("pointerdown", handleGlobalPointerDown, { passive: true });
 
     container.addEventListener("pointerdown", handlePointerDown);
     container.addEventListener("pointermove", handlePointerMove);
@@ -722,13 +780,15 @@ export function SceneCanvas({
       const delta = Math.min((now - lastDeltaTime) / 1000, 0.1);
       lastDeltaTime = now;
 
+      // 🟢 Mouse physics always runs in real-time (even during modal inspection)
+      mouse.updateMouse(delta);
+
       // Update animated props when not paused by active modal
       if (!isPausedRef.current) {
         coffee.updateSteam(delta);
         cassette.updateDeck(delta, sound.getEnabled());
         idCard.updateCard(delta);
         hologram.updateHolo(delta);
-        mouse.updateMouse(delta);
 
         // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
         currentCamDist += (targetCamDist - currentCamDist) * 0.10;
@@ -768,6 +828,8 @@ export function SceneCanvas({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", handleWindowResize);
       window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("pointermove", handleGlobalPointerMove);
+      window.removeEventListener("pointerdown", handleGlobalPointerDown);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerdown", handlePointerDown);
       container.removeEventListener("pointerup", handlePointerUp);

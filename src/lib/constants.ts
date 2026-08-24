@@ -18,7 +18,7 @@ export const DEVELOPER_AGE = calculateAge();
 export const DEVELOPER_PROFILE = {
   name: "Neeraj M",
   handle: "neerajm-dev",
-  title: "Solo Architect & Systems Engineer",
+  title: "Solo Builder & Systems Engineer",
   dob: DEVELOPER_DOB,
   age: DEVELOPER_AGE,
   education: "Pursuing BCA @ SNCT (Kerala, India)",

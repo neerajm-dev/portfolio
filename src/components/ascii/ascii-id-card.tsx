@@ -33,11 +33,15 @@ export function AsciiIdCard({
   const [rotX, setRotX] = useState(0);
   const [rotY, setRotY] = useState(initialFacing === "back" ? 180 : 0);
 
+  const [scale, setScale] = useState(1.0);
+
   const avatarCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
   const pointerStart = useRef({ x: 0, y: 0 });
   const startRot = useRef({ x: 0, y: 0 });
   const dragDistance = useRef(0);
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const prevPinchDist = useRef(0);
 
   const themeHex = theme.hex;
 
@@ -80,19 +84,52 @@ export function AsciiIdCard({
     }
   }, [themeHex]);
 
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const zoomDelta = -e.deltaY * 0.0015;
+    setScale((prev) => Math.max(0.65, Math.min(1.80, +(prev + zoomDelta).toFixed(3))));
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    isDragging.current = true;
-    pointerStart.current = { x: e.clientX, y: e.clientY };
-    startRot.current = { x: rotX, y: rotY };
-    dragDistance.current = 0;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Multi-touch Pinch-to-Zoom on Mobile
+    if (activePointers.current.size === 2) {
+      const pts = Array.from(activePointers.current.values());
+      prevPinchDist.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      return;
+    }
+
+    if (activePointers.current.size === 1) {
+      isDragging.current = true;
+      pointerStart.current = { x: e.clientX, y: e.clientY };
+      startRot.current = { x: rotX, y: rotY };
+      dragDistance.current = 0;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // Handle 2-Finger Pinch-to-Zoom on Mobile
+    if (activePointers.current.size === 2) {
+      const pts = Array.from(activePointers.current.values());
+      const currPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (prevPinchDist.current > 0) {
+        const deltaDist = currPinchDist - prevPinchDist.current;
+        setScale((prev) => Math.max(0.65, Math.min(1.80, +(prev + deltaDist * 0.005).toFixed(3))));
+      }
+      prevPinchDist.current = currPinchDist;
+      return;
+    }
+
     if (!isDragging.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
@@ -107,6 +144,11 @@ export function AsciiIdCard({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) {
+      prevPinchDist.current = 0;
+    }
+
     if (!isDragging.current) return;
     isDragging.current = false;
     try {
@@ -133,6 +175,7 @@ export function AsciiIdCard({
     sound.playClick();
     setRotX(0);
     setRotY(0);
+    setScale(1.0);
     notifyFacing(0);
   };
 
@@ -147,16 +190,18 @@ export function AsciiIdCard({
   return (
     <div
       className="w-[92vw] sm:w-[520px] h-[325px] mx-auto select-none [perspective:1200px] shrink-0 touch-none"
+      onClick={(e) => e.stopPropagation()}
+      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      title="Drag to rotate in 3D • Click to flip • Double-click to reset"
+      title="Drag to rotate in 3D • Scroll/pinch to zoom • Click to flip • Double-click to reset"
     >
       <div
         style={{
           transformStyle: "preserve-3d",
-          transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+          transform: `scale(${scale}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
           transition: isDragging.current ? "none" : "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
         className="w-full h-full relative [transform-style:preserve-3d]"

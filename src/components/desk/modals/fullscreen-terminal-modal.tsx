@@ -93,7 +93,7 @@ export function FullscreenTerminalModal({ onClose }: FullscreenTerminalModalProp
           content: (
             <div className="space-y-1 text-xs sm:text-sm text-[#00ff66]/90">
               <div className="text-[#00ff66] font-bold">NAME: NEERAJ M</div>
-              <div>ROLE: Solo Architect &amp; Systems Engineer ({DEVELOPER_PROFILE.age} years old)</div>
+              <div>ROLE: Solo Builder &amp; Systems Engineer ({DEVELOPER_PROFILE.age} years old)</div>
               <div>EDUCATION: Pursuing BCA @ SNCT (Kerala, India 🇮🇳)</div>
               <div>SPECIALTY: $0 Cloud Platforms, Next.js 15, Android Hybrid Engines, Supabase PostgreSQL</div>
               <div className="font-bold text-[#00ff66] mt-1">&quot;The Extended Mind: Architecture is born when human taste meets autonomous AI execution.&quot;</div>

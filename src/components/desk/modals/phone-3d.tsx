@@ -1,27 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { sound } from "@/lib/sound";
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
-import {
-  X,
-  ExternalLink,
-  RotateCcw,
-  Wifi,
-  Battery,
-  Signal,
-  Home,
-  ChevronLeft,
-  Terminal,
-  ShieldCheck,
-  Zap,
-  Globe,
-  Sparkles,
-  RefreshCw,
-  Layers,
-} from "lucide-react";
-import { GithubIcon } from "@/components/icons";
 
 interface Phone3DProps {
   onClose: () => void;
@@ -30,87 +14,437 @@ interface Phone3DProps {
   onOpenIdCard?: () => void;
 }
 
-type PhoneScreenState = "home" | "splash" | "app";
-
 export function Phone3D({
   onClose,
   theme = DEFAULT_THEME,
-  onOpenTerminal,
-  onOpenIdCard,
 }: Phone3DProps) {
-  const [rotX, setRotX] = useState(0);
-  const [rotY, setRotY] = useState(0);
-  const [screenState, setScreenState] = useState<PhoneScreenState>("home");
-  const [currentTime, setCurrentTime] = useState("12:00");
-  const [iframeKey, setIframeKey] = useState(0);
-  const [isIframeLoading, setIsIframeLoading] = useState(true);
-
-  const isDragging = useRef(false);
-  const pointerStart = useRef({ x: 0, y: 0 });
-  const startRot = useRef({ x: 0, y: 0 });
-  const dragDistance = useRef(0);
-  const splashTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const themeHex = theme.hex;
 
-  const normalizedY = ((rotY % 360) + 360) % 360;
-  const isFrontFacing = normalizedY < 90 || normalizedY > 270;
+  // Three.js References for Raycasting & Scene Management
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const modelGroupRef = useRef<THREE.Group | null>(null);
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
 
-  // Live status bar time
+  // Dynamic Camera Zoom Limits
+  const DEFAULT_ZOOM = 3.65;
+  const MIN_ZOOM = 2.10; // High-detail close-up
+  const MAX_ZOOM = 5.20; // Full overview
+  const targetZoom = useRef(DEFAULT_ZOOM);
+  const currentZoom = useRef(DEFAULT_ZOOM);
+
+  // Pointer drag state for 360° model rotation & click distinction
+  const isDragging = useRef(false);
+  const pointerStart = useRef({ x: 0, y: 0 });
+  const startRot = useRef({ x: 0, y: 0 });
+  const dragDist = useRef(0);
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const prevPinchDist = useRef(0);
+  const lastTapTime = useRef(0);
+
+  const rotX = useRef(0);
+  const rotY = useRef(0);
+  const targetRotX = useRef(0);
+  const targetRotY = useRef(0);
+
   useEffect(() => {
-    const update = () => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+
+    // 1. Scene & Camera Setup (Balanced framing so phone never clips or overflows)
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+    camera.position.set(0, 0, currentZoom.current);
+    cameraRef.current = camera;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance",
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.4;
+
+    // 2. Studio Lighting (PBR Highlights for Quad-Camera & Chassis)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    keyLight.position.set(3, 4, 4);
+    scene.add(keyLight);
+
+    const themeRimLight = new THREE.DirectionalLight(new THREE.Color(themeHex), 3.8);
+    themeRimLight.position.set(-3.5, -2, -3);
+    scene.add(themeRimLight);
+
+    const backLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    backLight.position.set(0, 2, -4);
+    scene.add(backLight);
+
+    // 3. Dynamic High-Resolution OLED Screen Texture
+    const screenCanvas = document.createElement("canvas");
+    screenCanvas.width = 480;
+    screenCanvas.height = 960;
+    const sCtx = screenCanvas.getContext("2d");
+
+    const getLiveTime = () => {
       const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString("en-US", {
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      );
+      return now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
-  // Cleanup splash timer
-  useEffect(() => {
+    const renderScreenTexture = (nowTime: string = getLiveTime()) => {
+      if (!sCtx) return;
+
+      // Deep OLED Black
+      sCtx.fillStyle = "#020509";
+      sCtx.fillRect(0, 0, 480, 960);
+
+      // Radial Neon Glow
+      const bgGlow = sCtx.createRadialGradient(240, 480, 20, 240, 480, 340);
+      bgGlow.addColorStop(0, `${themeHex}33`);
+      bgGlow.addColorStop(0.6, `${themeHex}0a`);
+      bgGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      sCtx.fillStyle = bgGlow;
+      sCtx.fillRect(0, 0, 480, 960);
+
+      // Cyber Grid Matrix
+      sCtx.strokeStyle = `${themeHex}14`;
+      sCtx.lineWidth = 1;
+      for (let x = 0; x < 480; x += 32) {
+        sCtx.beginPath();
+        sCtx.moveTo(x, 0);
+        sCtx.lineTo(x, 960);
+        sCtx.stroke();
+      }
+      for (let y = 0; y < 960; y += 32) {
+        sCtx.beginPath();
+        sCtx.moveTo(0, y);
+        sCtx.lineTo(480, y);
+        sCtx.stroke();
+      }
+
+      // Teardrop camera notch
+      sCtx.fillStyle = "#000000";
+      sCtx.beginPath();
+      sCtx.arc(240, 24, 18, 0, Math.PI);
+      sCtx.fill();
+
+      // Camera lens dot
+      sCtx.fillStyle = "#050d18";
+      sCtx.beginPath();
+      sCtx.arc(240, 18, 7, 0, Math.PI * 2);
+      sCtx.fill();
+
+      // Status Bar - Left Time
+      sCtx.textAlign = "left";
+      sCtx.font = "700 20px Orbitron, monospace";
+      sCtx.fillStyle = "#a1a1aa";
+      sCtx.fillText(nowTime, 36, 48);
+
+      // Status Bar - Right: Wi-Fi Icon (Full Signal Strength) + 100% Battery
+      const wx = 345;
+      const wy = 48;
+      sCtx.fillStyle = themeHex;
+      sCtx.strokeStyle = themeHex;
+      sCtx.lineWidth = 2.2;
+      sCtx.lineCap = "round";
+
+      // Wi-Fi Base Dot
+      sCtx.beginPath();
+      sCtx.arc(wx, wy - 3, 2.5, 0, Math.PI * 2);
+      sCtx.fill();
+
+      // Wi-Fi Middle Arc
+      sCtx.beginPath();
+      sCtx.arc(wx, wy - 3, 8, -Math.PI * 0.75, -Math.PI * 0.25);
+      sCtx.stroke();
+
+      // Wi-Fi Top Arc (Full Strength)
+      sCtx.beginPath();
+      sCtx.arc(wx, wy - 3, 14, -Math.PI * 0.75, -Math.PI * 0.25);
+      sCtx.stroke();
+
+      // Battery 100%
+      sCtx.textAlign = "left";
+      sCtx.font = "700 17px Orbitron, monospace";
+      sCtx.fillStyle = themeHex;
+      sCtx.fillText("100%", 372, 48);
+
+      // Centered Large Clock Widget (Orbitron 900 Ultra-Bold)
+      sCtx.textAlign = "center";
+      sCtx.font = "900 84px Orbitron, monospace";
+      sCtx.fillStyle = themeHex;
+      sCtx.shadowColor = themeHex;
+      sCtx.shadowBlur = 20;
+      sCtx.fillText(nowTime, 240, 430);
+      sCtx.shadowBlur = 0;
+
+      sCtx.font = "700 15px Orbitron, monospace";
+      sCtx.fillStyle = "#71717a";
+      sCtx.fillText("KERALA, IN • 28°C CLEAR", 240, 480);
+
+      // Bottom Navigation Bar Pill
+      sCtx.fillStyle = "#52525b";
+      sCtx.beginPath();
+      sCtx.roundRect(160, 925, 160, 8, 4);
+      sCtx.fill();
+    };
+
+    const screenTexture = new THREE.CanvasTexture(screenCanvas);
+    screenTexture.minFilter = THREE.LinearFilter;
+    screenTexture.magFilter = THREE.LinearFilter;
+    screenTexture.colorSpace = THREE.SRGBColorSpace;
+
+    renderScreenTexture();
+
+    // Trigger update once Orbitron font finishes downloading
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.load("900 84px Orbitron").then(() => {
+        renderScreenTexture();
+        screenTexture.needsUpdate = true;
+      });
+    }
+
+    const screenMat = new THREE.MeshBasicMaterial({
+      map: screenTexture,
+      toneMapped: false,
+    });
+
+    // 4. Load Alain Sorazu 3D Smartphone GLB Model
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+    modelGroupRef.current = modelGroup;
+
+    const loader = new GLTFLoader();
+    loader.load(
+      "/models/phone.glb",
+      (gltf) => {
+        const phoneScene = gltf.scene;
+
+        const PHONE_SCALE = 10.0;
+        phoneScene.scale.set(PHONE_SCALE, PHONE_SCALE, PHONE_SCALE);
+        phoneScene.position.set(0, -0.952, 0); // Centers model at origin
+
+        phoneScene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            const matName = (mesh.material as THREE.Material)?.name || "";
+
+            // Map OLED screen texture to Screen Mesh with RIGHT-SIDE-UP UVs
+            if (matName.toLowerCase().includes("screen") || mesh.name === "Object_9") {
+              const pos = mesh.geometry.getAttribute("position");
+              if (pos) {
+                const minX = -1.2117, maxX = 1.2132;
+                const minZ = -5.1522, maxZ = -0.0973;
+                const uvs: number[] = [];
+                for (let i = 0; i < pos.count; i++) {
+                  const x = pos.getX(i);
+                  const z = pos.getZ(i);
+                  const u = (x - minX) / (maxX - minX);
+                  const v = (maxZ - z) / (maxZ - minZ); // V=1 at top, V=0 at bottom
+                  uvs.push(u, v);
+                }
+                mesh.geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+              }
+              mesh.material = screenMat;
+            } else if (matName.toLowerCase().includes("case") || mesh.name === "Object_8") {
+              // Sleek obsidian titanium chassis
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x090d14,
+                roughness: 0.32,
+                metalness: 0.88,
+              });
+            } else if (matName.toLowerCase().includes("white") || mesh.name === "Object_4") {
+              // Precision CNC dark gunmetal / titanium camera bezel rings (eliminates bright white rings)
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x121824,
+                roughness: 0.35,
+                metalness: 0.85,
+              });
+            } else if (mesh.name === "Object_5" || matName === "Camera.001") {
+              // Deep dark optical lens core and aperture
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x020406,
+                roughness: 0.15,
+                metalness: 0.90,
+              });
+            } else if (mesh.name === "Object_6" || matName === "Camera.002") {
+              // High-spec optical sapphire camera glass with clearcoat reflections & transparency
+              mesh.material = new THREE.MeshPhysicalMaterial({
+                color: 0x080e18,
+                roughness: 0.04,
+                metalness: 0.10,
+                transmission: 0.82,
+                transparent: true,
+                opacity: 0.90,
+                ior: 1.54,
+                reflectivity: 0.95,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.02,
+              });
+            } else if (matName.toLowerCase().includes("black") || mesh.name === "Object_10") {
+              // Dark glossy camera island bump backing plate
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x05080e,
+                roughness: 0.22,
+                metalness: 0.80,
+              });
+            } else if (matName.toLowerCase().includes("flash") || mesh.name === "Object_7") {
+              // Dual-tone LED flash
+              mesh.material = new THREE.MeshBasicMaterial({
+                color: 0xfffaed,
+              });
+            } else if (matName.toLowerCase().includes("button") || mesh.name === "Object_11") {
+              // Metallic buttons
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x162030,
+                roughness: 0.4,
+                metalness: 0.8,
+              });
+            }
+          }
+        });
+
+        modelGroup.add(phoneScene);
+      },
+      undefined,
+      (err) => console.warn("Failed to load /models/phone.glb:", err)
+    );
+
+    // Live clock updater for screen texture
+    const timeInterval = setInterval(() => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      renderScreenTexture(timeStr);
+      screenTexture.needsUpdate = true;
+    }, 1000);
+
+    // Desktop Mouse Wheel Zoom Handler
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomDelta = e.deltaY * 0.0035;
+      targetZoom.current = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom.current + zoomDelta));
+    };
+    container.addEventListener("wheel", handleWheel, { passive: false });
+
+    // Animation Loop with smooth inertial lerp (Rotation & Zoom)
+    let animId: number;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      rotX.current += (targetRotX.current - rotX.current) * 0.15;
+      rotY.current += (targetRotY.current - rotY.current) * 0.15;
+      currentZoom.current += (targetZoom.current - currentZoom.current) * 0.15;
+
+      modelGroup.rotation.x = (rotX.current * Math.PI) / 180;
+      modelGroup.rotation.y = (rotY.current * Math.PI) / 180;
+      camera.position.z = currentZoom.current;
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Handle container resize
+    const handleResize = () => {
+      if (!container || !renderer || !camera) return;
+      const w = container.clientWidth || window.innerWidth;
+      const h = container.clientHeight || window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+      cancelAnimationFrame(animId);
+      clearInterval(timeInterval);
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("resize", handleResize);
+      renderer.dispose();
     };
-  }, []);
+  }, [themeHex]);
 
+  // Pointer drag listeners for 360° 3D inspection, multi-touch pinch-zoom, and safe click-outside
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // If clicking an interactive button, link or iframe, do not capture pointer for drag rotation
-    if ((e.target as HTMLElement).closest("button, a, input, [role='button'], iframe")) {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Multi-touch Pinch-to-Zoom on Mobile
+    if (activePointers.current.size === 2) {
+      const pts = Array.from(activePointers.current.values());
+      prevPinchDist.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       return;
     }
 
-    isDragging.current = true;
-    pointerStart.current = { x: e.clientX, y: e.clientY };
-    startRot.current = { x: rotX, y: rotY };
-    dragDistance.current = 0;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore
+    if (activePointers.current.size === 1) {
+      isDragging.current = true;
+      pointerStart.current = { x: e.clientX, y: e.clientY };
+      startRot.current = { x: rotX.current, y: rotY.current };
+      dragDist.current = 0;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // Handle 2-Finger Pinch-to-Zoom on Mobile
+    if (activePointers.current.size === 2) {
+      const pts = Array.from(activePointers.current.values());
+      const currPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (prevPinchDist.current > 0) {
+        const deltaDist = currPinchDist - prevPinchDist.current;
+        targetZoom.current = Math.max(
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, targetZoom.current - deltaDist * 0.008)
+        );
+      }
+      prevPinchDist.current = currPinchDist;
+      return;
+    }
+
     if (!isDragging.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
-    dragDistance.current = Math.hypot(dx, dy);
+    dragDist.current = Math.hypot(dx, dy);
 
-    // Smooth horizontal spin + constrained vertical tilt
-    const newY = startRot.current.y + dx * 0.65;
-    const newX = Math.max(-35, Math.min(35, startRot.current.x - dy * 0.65));
-    setRotY(newY);
-    setRotX(newX);
+    targetRotY.current = startRot.current.y + dx * 0.65;
+    targetRotX.current = Math.max(-60, Math.min(60, startRot.current.x + dy * 0.65));
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) {
+      prevPinchDist.current = 0;
+    }
+
     if (!isDragging.current) return;
     isDragging.current = false;
     try {
@@ -118,563 +452,61 @@ export function Phone3D({
     } catch {
       // ignore
     }
-  };
 
-  const handleFlipPhone = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    sound.playNodePulse();
-    const currentNormalized = Math.round(rotY / 180) * 180;
-    const targetY = currentNormalized + 180;
-    setRotY(targetY);
-    setRotX(0);
-  };
+    const now = performance.now();
+    const isDoubleTap = now - lastTapTime.current < 280 && dragDist.current < 8;
+    lastTapTime.current = now;
 
-  const handleResetOrientation = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    sound.playClick();
-    setRotX(0);
-    setRotY(0);
-  };
+    // Double-Click / Double-Tap to Reset Zoom & Rotation
+    if (isDoubleTap) {
+      targetZoom.current = DEFAULT_ZOOM;
+      targetRotX.current = 0;
+      targetRotY.current = 0;
+      sound.playNodePulse();
+      return;
+    }
 
-  const launchKtccApp = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    sound.playSuccess();
-    setScreenState("splash");
-    setIsIframeLoading(true);
+    // If user clicked/tapped without dragging (dragDist < 6px)
+    if (dragDist.current < 6 && canvasRef.current && cameraRef.current && modelGroupRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      mouseRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-    if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
-    splashTimerRef.current = setTimeout(() => {
-      setScreenState("app");
-    }, 1100);
-  };
+      raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+      const intersects = raycasterRef.current.intersectObjects(modelGroupRef.current.children, true);
 
-  const handleBackToHome = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    sound.playClick();
-    setScreenState("home");
-  };
-
-  const handleReloadIframe = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    sound.playClick(1.3);
-    setIsIframeLoading(true);
-    setIframeKey((k) => k + 1);
+      // If clicked outside the 3D phone model mesh (empty space on left, right, top, bottom)
+      if (intersects.length === 0) {
+        sound.playClick();
+        onClose();
+      }
+    }
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.22 }}
-      className="relative flex flex-col items-center justify-center p-2 sm:p-4 select-none max-h-[95vh]"
-      onClick={(e) => e.stopPropagation()}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 select-none cursor-grab active:cursor-grabbing touch-none"
+      onClick={(e) => {
+        // Prevent event bubbling to parent backdrop since handlePointerUp handles precise raycasted close
+        e.stopPropagation();
+      }}
     >
-      {/* 🟢 TOP CONTROLS & HUD BAR */}
-      <div className="w-full max-w-[360px] flex items-center justify-between gap-2 mb-3 z-30 font-mono text-xs">
-        <div className="flex items-center gap-1.5 bg-black/80 backdrop-blur-md border border-[#00ff66]/30 px-2.5 py-1 rounded-[6px]">
-          <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: themeHex }} />
-          <span className="font-bold text-[11px] tracking-wider" style={{ color: themeHex }}>
-            SMARTPHONE // 3D SPATIAL
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={handleFlipPhone}
-            title="Flip Phone 180°"
-            className="flex items-center gap-1 bg-black/80 hover:bg-[#00ff66]/20 border border-[#00ff66]/40 text-[#00ff66] px-2 py-1 rounded-[6px] transition-all cursor-pointer text-[10px] font-bold"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>FLIP</span>
-          </button>
-
-          <button
-            onClick={handleResetOrientation}
-            title="Reset 3D Tilt"
-            className="bg-black/80 hover:bg-[#00ff66]/20 border border-[#00ff66]/40 text-[#00ff66] px-2 py-1 rounded-[6px] transition-all cursor-pointer text-[10px] font-bold"
-          >
-            RESET
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              onClose();
-            }}
-            title="Close Phone View [ESC]"
-            className="flex items-center gap-1 bg-black/80 hover:bg-[#00ff66]/30 border border-[#00ff66] text-[#00ff66] px-2 py-1 rounded-[6px] transition-all cursor-pointer text-[11px] font-bold shadow-[0_0_10px_rgba(0,255,102,0.2)]"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>ESC</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 🟢 3D PHONE VIEWPORT & CHASSIS CONTAINER */}
+      {/* 🟢 FULL-VIEWPORT 3D SMARTPHONE VIEWPORT (WHEEL / PINCH TO ZOOM, DRAG TO ROTATE, DOUBLE-CLICK RESET) */}
       <div
-        className="w-[330px] sm:w-[360px] h-[610px] sm:h-[660px] [perspective:1400px] shrink-0 touch-none cursor-grab active:cursor-grabbing"
+        ref={containerRef}
+        className="w-full h-full flex items-center justify-center relative touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <div
-          style={{
-            transformStyle: "preserve-3d",
-            transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)`,
-            transition: isDragging.current ? "none" : "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-          }}
-          className="w-full h-full relative [transform-style:preserve-3d]"
-        >
-          {/* ========================================================================= */}
-          {/* 🟢 SIDE A: FRONT FACE (FLAGSHIP DISPLAY & MOBILE CYBER OS)                 */}
-          {/* ========================================================================= */}
-          <div
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateY(0deg) translateZ(8px)",
-              borderColor: `${themeHex}88`,
-              boxShadow: `0 0 45px ${themeHex}2e, 0 20px 40px rgba(0,0,0,0.9)`,
-              pointerEvents: isFrontFacing ? "auto" : "none",
-              zIndex: isFrontFacing ? 20 : 5,
-            }}
-            className="absolute inset-0 w-full h-full bg-[#05080c] border-[3px] rounded-[38px] p-3 font-mono overflow-hidden flex flex-col justify-between"
-          >
-            {/* Phone Outer Bezel Ring Highlight */}
-            <div className="absolute inset-0 rounded-[35px] border border-white/10 pointer-events-none z-40" />
-
-            {/* Subtle Screen Reflection Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.05] pointer-events-none z-30" />
-
-            {/* Dynamic Island Camera Notch Pill */}
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-5 bg-black border border-neutral-800 rounded-full z-40 flex items-center justify-between px-2.5 shadow-md">
-              <div className="w-2 h-2 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center">
-                <div className="w-0.5 h-0.5 rounded-full bg-cyan-500/80" />
-              </div>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500/40 animate-pulse" />
-            </div>
-
-            {/* Live Mobile Status Bar */}
-            <div className="relative z-30 flex items-center justify-between px-4 pt-1 text-[10px] font-bold text-neutral-300">
-              <span>{currentTime}</span>
-              <div className="flex items-center gap-1.5 text-neutral-300">
-                <Signal className="w-3 h-3 text-[#00ff66]" />
-                <span className="text-[9px] font-mono text-[#00ff66]">5G</span>
-                <Wifi className="w-3 h-3" />
-                <Battery className="w-3.5 h-3.5 text-[#00ff66]" />
-              </div>
-            </div>
-
-            {/* 🟢 SCREEN VIEW CONTENT (HOME / SPLASH / APP) */}
-            <div className="relative z-20 flex-1 w-full mt-2 mb-1.5 rounded-[26px] overflow-hidden bg-black flex flex-col">
-              <AnimatePresence mode="wait">
-                {/* 1. HOMESCREEN STATE */}
-                {screenState === "home" && (
-                  <motion.div
-                    key="home"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-1 w-full h-full p-3.5 flex flex-col justify-between relative overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#091811] via-[#040808] to-black"
-                  >
-                    {/* Matrix Grid Background */}
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,102,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,102,0.04)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
-
-                    {/* Clock & Telemetry Widget */}
-                    <div className="relative z-10 pt-4 text-center">
-                      <div className="text-3xl font-black tracking-tight" style={{ color: themeHex }}>
-                        {currentTime}
-                      </div>
-                      <div className="text-[10px] text-neutral-400 font-medium">
-                        KERALA, IN • 28°C CLEAR
-                      </div>
-
-                      {/* Flagship Banner Pill */}
-                      <div className="mt-3 inline-flex items-center gap-1.5 border border-[#00ff66]/40 bg-[#00ff66]/10 px-2.5 py-1 rounded-full text-[9px] font-bold text-[#00ff66]">
-                        <Zap className="w-3 h-3 animate-pulse" />
-                        <span>FLAGSHIP APP AVAILABLE</span>
-                      </div>
-                    </div>
-
-                    {/* App Grid */}
-                    <div className="relative z-10 my-auto py-2">
-                      <div className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-2 px-1">
-                        INSTALLED APPS
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* 🏎️ KTCC FLAGSHIP APP ICON */}
-                        <motion.button
-                          whileHover={{ scale: 1.08 }}
-                          whileTap={{ scale: 0.92 }}
-                          onClick={launchKtccApp}
-                          className="flex flex-col items-center gap-1 group cursor-pointer"
-                        >
-                          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#003816] via-[#001f0c] to-black border-2 border-[#00ff66] flex items-center justify-center shadow-[0_0_18px_rgba(0,255,102,0.45)] group-hover:shadow-[0_0_26px_rgba(0,255,102,0.7)] transition-all">
-                            {/* Notification Badge */}
-                            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#00ff66] text-black font-extrabold text-[8px] flex items-center justify-center">
-                              1
-                            </span>
-                            <div className="font-black text-sm tracking-tighter text-[#00ff66]">
-                              KTCC
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-bold text-[#00ff66] group-hover:text-white transition-colors">
-                            KTCC Live
-                          </span>
-                        </motion.button>
-
-                        {/* Terminal CLI App */}
-                        <motion.button
-                          whileHover={{ scale: 1.08 }}
-                          whileTap={{ scale: 0.92 }}
-                          onClick={() => {
-                            sound.playClick();
-                            onClose();
-                            onOpenTerminal?.();
-                          }}
-                          className="flex flex-col items-center gap-1 group cursor-pointer"
-                        >
-                          <div className="w-14 h-14 rounded-2xl bg-neutral-900/90 border border-neutral-700 flex items-center justify-center group-hover:border-cyan-400 group-hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all">
-                            <Terminal className="w-6 h-6 text-cyan-400" />
-                          </div>
-                          <span className="text-[10px] font-medium text-neutral-400 group-hover:text-cyan-300">
-                            Terminal
-                          </span>
-                        </motion.button>
-
-                        {/* Identity Card App */}
-                        <motion.button
-                          whileHover={{ scale: 1.08 }}
-                          whileTap={{ scale: 0.92 }}
-                          onClick={() => {
-                            sound.playClick();
-                            onClose();
-                            onOpenIdCard?.();
-                          }}
-                          className="flex flex-col items-center gap-1 group cursor-pointer"
-                        >
-                          <div className="w-14 h-14 rounded-2xl bg-neutral-900/90 border border-neutral-700 flex items-center justify-center group-hover:border-amber-400 group-hover:shadow-[0_0_15px_rgba(251,191,36,0.3)] transition-all">
-                            <ShieldCheck className="w-6 h-6 text-amber-400" />
-                          </div>
-                          <span className="text-[10px] font-medium text-neutral-400 group-hover:text-amber-300">
-                            ID Badge
-                          </span>
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    {/* Quick Platform Metrics Card */}
-                    <div className="relative z-10 border border-[#00ff66]/30 bg-black/70 rounded-xl p-2.5 space-y-1 text-[10px]">
-                      <div className="font-bold text-[#00ff66] flex items-center gap-1 border-b border-[#00ff66]/20 pb-1">
-                        <Sparkles className="w-3 h-3" />
-                        <span>FLAGSHIP PLATFORM // KTCC</span>
-                      </div>
-                      <div className="text-neutral-400 leading-tight">
-                        • 100% $0/mo Free Tier Cloud Infra
-                      </div>
-                      <div className="text-neutral-400 leading-tight">
-                        • Double-Entry Immutable Ledger
-                      </div>
-                      <div className="text-neutral-400 leading-tight">
-                        • GitHub Actions Headless APK CI/CD
-                      </div>
-                    </div>
-
-                    {/* Bottom Dock Bar */}
-                    <div className="relative z-10 mt-2 bg-neutral-900/80 backdrop-blur-md border border-neutral-800 rounded-2xl p-2 flex items-center justify-around">
-                      <a
-                        href="https://github.com/neerajm-dev"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => sound.playClick()}
-                        className="p-1.5 text-neutral-400 hover:text-white transition-colors"
-                        title="GitHub Profile"
-                      >
-                        <GithubIcon className="w-5 h-5" />
-                      </a>
-
-                      <button
-                        onClick={launchKtccApp}
-                        className="p-1.5 text-[#00ff66] hover:scale-110 transition-transform"
-                        title="Launch KTCC"
-                      >
-                        <Globe className="w-5 h-5" />
-                      </button>
-
-                      <a
-                        href="mailto:hi.neerajm@gmail.com"
-                        onClick={() => sound.playClick()}
-                        className="p-1.5 text-neutral-400 hover:text-white transition-colors"
-                        title="Send Email"
-                      >
-                        <Zap className="w-5 h-5" />
-                      </a>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* 2. NATIVE SPLASH SCREEN TRANSITION STATE */}
-                {screenState === "splash" && (
-                  <motion.div
-                    key="splash"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.18 }}
-                    className="flex-1 w-full h-full p-4 flex flex-col items-center justify-between bg-black text-[#00ff66] relative overflow-hidden"
-                  >
-                    {/* Glowing Aura */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,102,0.18)_0%,transparent_70%)] pointer-events-none" />
-
-                    <div className="pt-8 text-center space-y-1">
-                      <div className="text-[10px] tracking-widest text-[#00ff66]/70 uppercase font-mono">
-                        // INITIALIZING SESSION //
-                      </div>
-                    </div>
-
-                    {/* Splash Center Logo & Car Badge */}
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <motion.div
-                        animate={{ scale: [0.95, 1.05, 1], rotate: [0, -2, 0] }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                        className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#003816] via-[#001509] to-black border-2 border-[#00ff66] flex items-center justify-center shadow-[0_0_35px_rgba(0,255,102,0.6)]"
-                      >
-                        <span className="font-black text-2xl tracking-tighter text-[#00ff66]">
-                          KTCC
-                        </span>
-                      </motion.div>
-
-                      <div>
-                        <div className="font-black text-sm tracking-wider text-white">
-                          KERALA TOURERS
-                        </div>
-                        <div className="text-[10px] text-[#00ff66] font-bold tracking-widest">
-                          COMMUNITY CHAMPIONSHIP
-                        </div>
-                      </div>
-
-                      {/* Loading Progress Bar */}
-                      <div className="w-36 h-1 bg-[#00ff66]/20 rounded-full overflow-hidden mt-3">
-                        <motion.div
-                          initial={{ width: "0%" }}
-                          animate={{ width: "100%" }}
-                          transition={{ duration: 1.0, ease: "easeInOut" }}
-                          className="h-full bg-[#00ff66] shadow-[0_0_10px_#00ff66]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pb-6 text-center text-[9px] text-[#00ff66]/60">
-                      <div>v2.4.0-release • Supabase APAC</div>
-                      <div>DOUBLE-ENTRY LEDGER SECURED</div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* 3. LIVE EMBEDDED KTCC APP STATE */}
-                {screenState === "app" && (
-                  <motion.div
-                    key="app"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-1 w-full h-full flex flex-col bg-black relative"
-                  >
-                    {/* In-App Browser Navigation Header */}
-                    <div className="bg-[#001207] border-b border-[#00ff66]/30 px-2.5 py-1.5 flex items-center justify-between text-[10px] z-20">
-                      <button
-                        onClick={handleBackToHome}
-                        className="flex items-center gap-0.5 text-[#00ff66] hover:bg-[#00ff66]/20 px-1.5 py-0.5 rounded font-bold transition-all cursor-pointer"
-                        title="Back to Homescreen"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        <span>HOME</span>
-                      </button>
-
-                      <div className="flex items-center gap-1 text-[9px] font-mono text-[#00ff66]/80 truncate max-w-[150px]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00ff66] animate-pulse" />
-                        <span className="truncate">ktccofficial.vercel.app</span>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={handleReloadIframe}
-                          className="p-1 text-[#00ff66] hover:bg-[#00ff66]/20 rounded transition-all cursor-pointer"
-                          title="Reload Platform"
-                        >
-                          <RefreshCw className={`w-3 h-3 ${isIframeLoading ? "animate-spin" : ""}`} />
-                        </button>
-
-                        <a
-                          href="https://ktccofficial.vercel.app"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => sound.playClick(1.2)}
-                          className="p-1 text-[#00ff66] hover:bg-[#00ff66]/20 rounded transition-all"
-                          title="Open Live Fullscreen"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Live Embedded Iframe */}
-                    <div className="flex-1 w-full h-full relative bg-black">
-                      {isIframeLoading && (
-                        <div className="absolute inset-0 bg-black flex flex-col items-center justify-center gap-2 z-10 text-[#00ff66] text-xs">
-                          <RefreshCw className="w-5 h-5 animate-spin" />
-                          <span>CONNECTING TO APAC CDN...</span>
-                        </div>
-                      )}
-
-                      <iframe
-                        key={iframeKey}
-                        src="https://ktccofficial.vercel.app"
-                        title="KTCC Flagship Tournament Platform"
-                        className="w-full h-full border-none bg-black"
-                        onLoad={() => setIsIframeLoading(false)}
-                      />
-                    </div>
-
-                    {/* Bottom Mobile Home Gesture Bar */}
-                    <div
-                      onClick={handleBackToHome}
-                      className="bg-black/90 border-t border-neutral-800 py-1 flex items-center justify-center cursor-pointer hover:bg-neutral-900 transition-colors"
-                      title="Tap to return to Homescreen"
-                    >
-                      <div className="w-24 h-1 rounded-full bg-neutral-500 hover:bg-[#00ff66] transition-colors" />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Bottom Screen Indicator Bar */}
-            <div className="relative z-30 flex items-center justify-center pb-0.5">
-              <div className="w-28 h-1 rounded-full bg-neutral-700" />
-            </div>
-          </div>
-
-          {/* ========================================================================= */}
-          {/* 🟢 SIDE B: BACK FACE (FLAGSHIP HARDWARE & TRIPLE CAMERA MODULE)            */}
-          {/* ========================================================================= */}
-          <div
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateY(180deg) translateZ(8px)",
-              borderColor: `${themeHex}77`,
-              boxShadow: `0 0 45px ${themeHex}25, 0 20px 40px rgba(0,0,0,0.9)`,
-              pointerEvents: !isFrontFacing ? "auto" : "none",
-              zIndex: !isFrontFacing ? 20 : 5,
-            }}
-            className="absolute inset-0 w-full h-full bg-[#080d14] border-[3px] rounded-[38px] p-5 font-mono overflow-hidden flex flex-col justify-between text-[#00ff66]"
-          >
-            {/* Brushed Titanium Finish Texture */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-neutral-900/90 via-[#0a111a] to-[#04070a] pointer-events-none" />
-
-            {/* Cyber Circuit Overlays */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,102,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,102,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
-
-            {/* Top Back Header: Triple Camera Bump Module */}
-            <div className="relative z-20 flex items-start justify-between">
-              {/* Flagship Camera Island */}
-              <div className="w-32 h-32 rounded-3xl bg-[#030609] border border-neutral-700 p-2.5 grid grid-cols-2 gap-2 shadow-2xl relative">
-                {/* Lens 1: 50MP Wide Sensor */}
-                <div className="w-11 h-11 rounded-full bg-black border-2 border-neutral-600 flex items-center justify-center shadow-inner relative">
-                  <div className="w-6 h-6 rounded-full bg-neutral-900 border border-cyan-500/60 flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/40" />
-                  </div>
-                  <span className="absolute -bottom-0.5 right-0.5 text-[6px] font-bold text-neutral-400">50M</span>
-                </div>
-
-                {/* Lens 2: 12MP Ultra-Wide Sensor */}
-                <div className="w-11 h-11 rounded-full bg-black border-2 border-neutral-600 flex items-center justify-center shadow-inner relative">
-                  <div className="w-6 h-6 rounded-full bg-neutral-900 border border-emerald-500/60 flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/40" />
-                  </div>
-                  <span className="absolute -bottom-0.5 right-0.5 text-[6px] font-bold text-neutral-400">12M</span>
-                </div>
-
-                {/* Lens 3: Periscope Telephoto */}
-                <div className="w-11 h-11 rounded-full bg-black border-2 border-neutral-600 flex items-center justify-center shadow-inner relative">
-                  <div className="w-6 h-6 rounded-full bg-neutral-900 border border-indigo-500/60 flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-400/40" />
-                  </div>
-                  <span className="absolute -bottom-0.5 right-0.5 text-[6px] font-bold text-neutral-400">5X</span>
-                </div>
-
-                {/* Flash & LiDAR Sensor Ring */}
-                <div className="flex flex-col items-center justify-center gap-1">
-                  <div className="w-4 h-4 rounded-full bg-amber-200/90 border border-amber-300 shadow-[0_0_8px_#fde68a]" />
-                  <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
-                </div>
-              </div>
-
-              {/* Laser Engraved Spec Badge */}
-              <div className="text-right space-y-0.5">
-                <div className="text-[10px] font-black tracking-wider text-white">
-                  0xNEERAJ
-                </div>
-                <div className="text-[8px] text-[#00ff66]/70">
-                  FLAGSHIP DEV EDITION
-                </div>
-                <div className="text-[8px] text-neutral-500">
-                  MODEL: N26-PRO
-                </div>
-              </div>
-            </div>
-
-            {/* Glowing Qi / MagSafe Wireless Charging Matrix */}
-            <div className="relative z-20 my-auto flex flex-col items-center justify-center">
-              <div className="w-28 h-28 rounded-full border border-dashed border-[#00ff66]/40 flex items-center justify-center animate-[spin_20s_linear_infinite]">
-                <div className="w-20 h-20 rounded-full border border-[#00ff66]/25 flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-[#00ff66]/10 border border-[#00ff66]/60 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-[#00ff66]" />
-                  </div>
-                </div>
-              </div>
-              <div className="text-[9px] font-bold tracking-widest text-[#00ff66]/70 mt-2">
-                NFC // ZERO-COST CLOUD
-              </div>
-            </div>
-
-            {/* Bottom Chassis Engravings */}
-            <div className="relative z-20 border-t border-neutral-800 pt-3 space-y-1.5 text-[9px] text-neutral-400">
-              <div className="flex items-center justify-between">
-                <span className="text-[#00ff66]">ARCHITECT:</span>
-                <span className="font-bold text-white">NEERAJ M (19yo)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#00ff66]">ORIGIN:</span>
-                <span>KERALA, INDIA</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#00ff66]">SYSTEM:</span>
-                <span>NEERAJ_OS v2.4.0</span>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-[8px] text-neutral-500">
-                <span>[ DRAG TO ROTATE ]</span>
-                <button
-                  onClick={handleFlipPhone}
-                  className="text-[#00ff66] hover:underline font-bold"
-                >
-                  [ FLIP TO FRONT ]
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Helper Footer Hint */}
-      <div className="mt-2 text-center text-[10px] font-mono text-neutral-500 flex items-center gap-2">
-        <span>💡 Drag phone to rotate in 3D</span>
-        <span>•</span>
-        <span>Tap KTCC App to launch</span>
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full block"
+        />
       </div>
     </motion.div>
   );

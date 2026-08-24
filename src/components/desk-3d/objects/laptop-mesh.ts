@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
+import { TerminalFont, DEFAULT_TERMINAL_FONT, TERMINAL_FONTS } from "@/lib/terminal-fonts";
 
 /**
  * High-Resolution Procedural TUF Gaming F15 (FX506HC) Lid Back Texture
@@ -443,12 +444,30 @@ interface Key3DDef {
   label: string;
   sub?: string;
   isWASD?: boolean;
+  isSpace?: boolean;
+  isSpecial?: boolean;
+}
+
+interface KeycapData {
+  label: string;
+  subLabel?: string;
+  w?: number;
+  d?: number;
+  isSpace?: boolean;
+  isEnter?: boolean;
+  isWASD?: boolean;
   isSpecial?: boolean;
 }
 
 export function createLaptopMesh(): {
   group: THREE.Group;
-  updateScreenTexture: (textLines?: string[], currentInput?: string, themeHex?: string) => void;
+  updateScreenTexture: (
+    textLines?: string[],
+    currentInput?: string,
+    themeHex?: string,
+    font?: TerminalFont,
+    isPickerActive?: boolean
+  ) => void;
   setTheme: (theme: WorkstationTheme) => void;
 } {
   const group = new THREE.Group();
@@ -1108,7 +1127,7 @@ export function createLaptopMesh(): {
 
   const screenTexture = new THREE.CanvasTexture(screenCanvas);
   screenTexture.minFilter = THREE.LinearFilter;
-  screenTexture.magFilter = THREE.LinearFilter;
+      screenTexture.magFilter = THREE.LinearFilter;
   screenTexture.colorSpace = THREE.SRGBColorSpace;
 
   // Preload Neeraj M avatar image for in-terminal display
@@ -1121,15 +1140,21 @@ export function createLaptopMesh(): {
   let lastRenderLines: string[] | undefined = undefined;
   let lastRenderInput: string = "";
   let lastRenderTheme: string = "#00ff66";
+  let lastRenderFont: TerminalFont = DEFAULT_TERMINAL_FONT;
+  let lastRenderPickerActive: boolean = false;
 
   const renderScreen = (
     lines?: string[],
     currentInput: string = "",
-    themeHex: string = "#00ff66"
+    themeHex: string = "#00ff66",
+    font: TerminalFont = lastRenderFont,
+    isPickerActive: boolean = lastRenderPickerActive
   ) => {
     lastRenderLines = lines;
     lastRenderInput = currentInput;
     lastRenderTheme = themeHex;
+    lastRenderFont = font || DEFAULT_TERMINAL_FONT;
+    lastRenderPickerActive = isPickerActive;
     if (!screenCtx) return;
 
     // Deep CRT Green-Black background
@@ -1147,8 +1172,66 @@ export function createLaptopMesh(): {
     const visibleLines = history.slice(-14);
     let startY = 44;
 
-    screenCtx.font = "bold 19px monospace";
+    const fontStyle = lastRenderFont.canvasFontSize || "bold 19px";
+    screenCtx.font = `${fontStyle} ${lastRenderFont.family}`;
     visibleLines.forEach((line) => {
+      if (line.startsWith("[FONT_ROW:")) {
+        const match = line.match(/^\[FONT_ROW:([^:]+):([01]):([01])\](.*)$/);
+        if (match) {
+          const fontId = match[1];
+          const isSelected = match[2] === "1";
+          const isActive = match[3] === "1";
+          const itemFont = TERMINAL_FONTS.find((f) => f.id === fontId);
+
+          if (isSelected) {
+            screenCtx.fillStyle = `${themeHex}25`;
+            screenCtx.fillRect(32, startY - 20, 960, 28);
+            screenCtx.strokeStyle = themeHex;
+            screenCtx.lineWidth = 1.5;
+            screenCtx.strokeRect(32, startY - 20, 960, 28);
+          }
+
+          if (itemFont) {
+            const fontIdx = TERMINAL_FONTS.indexOf(itemFont) + 1;
+            const marker = isSelected ? "●" : " ";
+            const numStr = `  ${marker} ${String(fontIdx).padStart(2, " ")}. `;
+
+            // 1. Draw prefix (marker + number) in active terminal UI font
+            screenCtx.font = `${fontStyle} ${lastRenderFont.family}`;
+            screenCtx.fillStyle = isSelected ? "#ffffff" : themeHex;
+            screenCtx.fillText(numStr, 36, startY);
+
+            // 2. Draw Font Name in ITS OWN SPECIFIC FONT!
+            const itemStyle = itemFont.canvasFontSize || "bold 19px";
+            screenCtx.font = `${itemStyle} ${itemFont.family}`;
+            screenCtx.fillStyle = isSelected ? "#ffffff" : themeHex;
+            if (isSelected) {
+              screenCtx.shadowColor = themeHex;
+              screenCtx.shadowBlur = 8;
+            }
+            screenCtx.fillText(itemFont.name, 36 + 82, startY);
+            screenCtx.shadowBlur = 0;
+
+            // 3. Draw Instant Apply Command in active terminal font
+            screenCtx.font = `${fontStyle} ${lastRenderFont.family}`;
+            screenCtx.fillStyle = isSelected ? "#ffffff" : `${themeHex}99`;
+            screenCtx.fillText(`→  ${itemFont.commandAlias}`, 36 + 320, startY);
+
+            // 4. Draw [ACTIVE] badge if currently active
+            if (isActive) {
+              screenCtx.fillStyle = isSelected ? "#ffffff" : "#ffffff";
+              screenCtx.shadowColor = themeHex;
+              screenCtx.shadowBlur = 6;
+              screenCtx.fillText("[ACTIVE]", 36 + 550, startY);
+              screenCtx.shadowBlur = 0;
+            }
+          }
+
+          startY += 30;
+          return;
+        }
+      }
+
       if (line === "[IMG:avatar]" || line.startsWith("[IMG:avatar]")) {
         // Draw the avatar image directly on the CRT terminal without outer borders
         const imgSize = 136;
@@ -1196,30 +1279,44 @@ export function createLaptopMesh(): {
       }
     });
 
-    // Active Live Typing Prompt Line ([neeraj@sys ~]$)
-    const promptY = Math.min(startY, 606);
-    screenCtx.fillStyle = themeHex;
-    screenCtx.font = "bold 19px monospace";
-    screenCtx.fillText("[neeraj@sys ~]$ ", 36, promptY);
+    // Check if an interactive picker is open (hide prompt while navigating menu)
+    const isPickerOpen =
+      isPickerActive ||
+      (visibleLines.some(
+        (l) =>
+          l.includes("[FONT_ROW:") ||
+          l.includes("WORKSTATION RGB PROFILE") ||
+          l.includes("TERMINAL MONOSPACE FONT") ||
+          l.includes("Use [↑ / ↓] to live-preview")
+      ) &&
+        !visibleLines.slice(-3).some((l) => l.startsWith("[OK]") || l.startsWith("[CANCEL]")));
 
-    const prefixWidth = screenCtx.measureText("[neeraj@sys ~]$ ").width;
-    screenCtx.fillStyle = themeHex;
-    screenCtx.fillText(currentInput, 36 + prefixWidth, promptY);
+    // Active Live Typing Prompt Line ([neeraj@sys ~]$) - only render if not navigating a picker menu
+    if (!isPickerOpen) {
+      const promptY = Math.min(startY, 606);
+      screenCtx.fillStyle = themeHex;
+      screenCtx.font = `${fontStyle} ${lastRenderFont.family}`;
+      screenCtx.fillText("[neeraj@sys ~]$ ", 36, promptY);
 
-    // Glowing Block Cursor
-    const inputWidth = screenCtx.measureText(currentInput).width;
-    screenCtx.fillStyle = themeHex;
-    screenCtx.shadowColor = themeHex;
-    screenCtx.shadowBlur = 8;
-    screenCtx.fillRect(36 + prefixWidth + inputWidth + 2, promptY - 17, 11, 21);
-    screenCtx.shadowBlur = 0;
+      const prefixWidth = screenCtx.measureText("[neeraj@sys ~]$ ").width;
+      screenCtx.fillStyle = themeHex;
+      screenCtx.fillText(currentInput, 36 + prefixWidth, promptY);
+
+      // Glowing Block Cursor
+      const inputWidth = screenCtx.measureText(currentInput).width;
+      screenCtx.fillStyle = themeHex;
+      screenCtx.shadowColor = themeHex;
+      screenCtx.shadowBlur = 8;
+      screenCtx.fillRect(36 + prefixWidth + inputWidth + 2, promptY - 17, 11, 21);
+      screenCtx.shadowBlur = 0;
+    }
 
     screenTexture.needsUpdate = true;
   };
 
   if (avatarImg && !avatarImg.complete) {
     avatarImg.onload = () => {
-      renderScreen(lastRenderLines, lastRenderInput, lastRenderTheme);
+      renderScreen(lastRenderLines, lastRenderInput, lastRenderTheme, lastRenderFont, lastRenderPickerActive);
     };
   }
 
@@ -1372,7 +1469,7 @@ export function createLaptopMesh(): {
       wireMat.color.setHex(theme.threeColor);
       sbStripeMat.color.setHex(theme.threeColor);
       tufLidBack.renderLidBack(theme.hex);
-      renderScreen(lastRenderLines, lastRenderInput, theme.hex);
+      renderScreen(lastRenderLines, lastRenderInput, theme.hex, lastRenderFont);
     },
   };
 }
