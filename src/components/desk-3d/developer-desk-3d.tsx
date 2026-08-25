@@ -137,11 +137,24 @@ function LiveClock({ themeHex }: { themeHex: string }) {
 
 function FpsSparkline({ themeHex }: { themeHex: string }) {
   const [fps, setFps] = useState(60);
-  const [frameHistory, setFrameHistory] = useState<number[]>([
-    16.2, 16.5, 16.7, 16.6, 16.4, 16.8, 16.6, 16.5, 16.7, 16.6, 16.5, 16.6,
+  const [fpsHistory, setFpsHistory] = useState<number[]>([
+    60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
   ]);
 
   useEffect(() => {
+    // 1. Direct Three.js Engine Telemetry Listener
+    const handleEngineFps = (e: Event) => {
+      const customEvent = e as CustomEvent<{ fps: number; frameTime: number }>;
+      if (customEvent.detail?.fps) {
+        const liveFps = customEvent.detail.fps;
+        setFps(liveFps);
+        setFpsHistory((prev) => [...prev.slice(1), liveFps]);
+      }
+    };
+
+    window.addEventListener("neeraj:engine-fps", handleEngineFps);
+
+    // 2. Client-side fallback measurement
     let frameCount = 0;
     let lastTime = performance.now();
     let animId: number;
@@ -151,39 +164,45 @@ function FpsSparkline({ themeHex }: { themeHex: string }) {
       const elapsed = now - lastTime;
 
       if (elapsed >= 500) {
-        const currentFps = Math.min(120, Math.max(1, Math.round((frameCount * 1000) / elapsed)));
-        const frameTime = +(1000 / currentFps).toFixed(1);
-        setFps(currentFps);
+        const measuredFps = Math.min(240, Math.max(1, Math.round((frameCount * 1000) / elapsed)));
+        // Only update if no direct engine telemetry received in the last 1.5s
+        setFps((prev) => (Math.abs(prev - measuredFps) > 15 ? measuredFps : prev));
         frameCount = 0;
         lastTime = now;
-
-        setFrameHistory((prev) => [...prev.slice(1), frameTime]);
       }
 
       animId = requestAnimationFrame(loop);
     };
 
     animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
+    return () => {
+      window.removeEventListener("neeraj:engine-fps", handleEngineFps);
+      cancelAnimationFrame(animId);
+    };
   }, []);
+
+  // Determine baseline target refresh rate (60Hz, 90Hz, 120Hz, 144Hz)
+  const maxRecordedFps = Math.max(...fpsHistory, fps);
+  const targetBaseline = maxRecordedFps > 105 ? 120 : maxRecordedFps > 75 ? 90 : 60;
 
   return (
     <div
       className="bg-transparent px-1.5 py-1 flex items-center gap-2 select-none"
-      title={`3D Spatial Engine: ${fps} FPS // ${(1000 / Math.max(1, fps)).toFixed(1)}ms frame time`}
+      title={`3D Spatial Engine: ${fps} FPS // Target Baseline: ${targetBaseline}Hz`}
     >
       <svg width="34" height="13" className="overflow-visible">
         <defs>
           <linearGradient id="fps-spark-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={themeHex} stopOpacity="0.4" />
+            <stop offset="0%" stopColor={themeHex} stopOpacity="0.45" />
             <stop offset="100%" stopColor={themeHex} stopOpacity="0.0" />
           </linearGradient>
         </defs>
         <polygon
-          points={`0,13 ${frameHistory
+          points={`0,13 ${fpsHistory
             .map((val, idx) => {
-              const x = (idx / (frameHistory.length - 1)) * 34;
-              const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+              const x = (idx / (fpsHistory.length - 1)) * 34;
+              const ratio = Math.max(0.1, Math.min(1.0, val / targetBaseline));
+              const y = 11 - ratio * 8.5; // Steady line at y = 2.5 when solid
               return `${x.toFixed(1)},${y.toFixed(1)}`;
             })
             .join(" ")} 34,13`}
@@ -192,13 +211,14 @@ function FpsSparkline({ themeHex }: { themeHex: string }) {
         <polyline
           fill="none"
           stroke={themeHex}
-          strokeWidth="1.5"
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
-          points={frameHistory
+          points={fpsHistory
             .map((val, idx) => {
-              const x = (idx / (frameHistory.length - 1)) * 34;
-              const y = Math.max(2, Math.min(11, 13 - (22 - val) * 1.1));
+              const x = (idx / (fpsHistory.length - 1)) * 34;
+              const ratio = Math.max(0.1, Math.min(1.0, val / targetBaseline));
+              const y = 11 - ratio * 8.5;
               return `${x.toFixed(1)},${y.toFixed(1)}`;
             })
             .join(" ")}

@@ -11,6 +11,7 @@ export function CustomCursor({ themeHex = "#00ff66" }: CustomCursorProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDown, setIsDown] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   const cursorContainerRef = useRef<HTMLDivElement>(null);
   const rippleRef = useRef<HTMLDivElement>(null);
@@ -125,9 +126,11 @@ export function CustomCursor({ themeHex = "#00ff66" }: CustomCursorProps) {
     document.addEventListener("mouseleave", onMouseLeave);
     document.addEventListener("mouseenter", onMouseEnter);
 
-    // MutationObserver to immediately catch 3D canvas raycasting hover state changes
+    // MutationObserver to immediately catch 3D canvas raycasting hover state changes & hidden state
     const observer = new MutationObserver(() => {
       const is3d = document.documentElement.getAttribute("data-cursor-hover") === "true";
+      const hidden = document.documentElement.getAttribute("data-cursor-hidden") === "true";
+      setIsHidden(hidden);
       setIsHovered((prev) => {
         const isHtml = Boolean(
           document.querySelector(':hover:is(button, a, input, textarea, select, [role="button"], .cursor-pointer)')
@@ -137,7 +140,7 @@ export function CustomCursor({ themeHex = "#00ff66" }: CustomCursorProps) {
     });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-cursor-hover"],
+      attributeFilter: ["data-cursor-hover", "data-cursor-hidden"],
     });
 
     // Velocity decay loop
@@ -169,7 +172,9 @@ export function CustomCursor({ themeHex = "#00ff66" }: CustomCursorProps) {
 
   return (
     <div
-      className="fixed inset-0 pointer-events-none z-[999999] overflow-hidden select-none"
+      className={`fixed inset-0 pointer-events-none z-[999999] overflow-hidden select-none transition-opacity duration-150 ${
+        isHidden ? "opacity-0" : "opacity-100"
+      }`}
       aria-hidden="true"
     >
       {/* CLICK RIPPLE PING WAVE */}

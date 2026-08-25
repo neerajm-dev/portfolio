@@ -350,13 +350,13 @@ export function createMouseMesh(): {
   cableMesh.castShadow = true;
   group.add(cableMesh);
 
-  // Cable TokyoNight Neon Wireframe Accent
+  // Cable TokyoNight Neon Wireframe Accent (Smooth Contour LineSegments)
   const cableWireMat = new THREE.LineBasicMaterial({
     color: DEFAULT_THEME.threeColor,
     transparent: true,
-    opacity: 0.30,
+    opacity: 0.35,
   });
-  let cableWire = new THREE.LineSegments(new THREE.EdgesGeometry(cableGeo, 28), cableWireMat);
+  let cableWire = new THREE.LineSegments(new THREE.EdgesGeometry(cableGeo, 24), cableWireMat);
   group.add(cableWire);
 
   // 8. ELASTIC BOUNDED MOUSEPAD & CABLE BUNDLE PHYSICS STATE
@@ -514,11 +514,12 @@ export function createMouseMesh(): {
 
       cableCurve.points = cablePoints;
 
-      const newGeo = new THREE.TubeGeometry(cableCurve, 84, 0.022, 8, false);
+      // Smooth high-resolution procedural tube (96 segments, 8 radial)
+      const newGeo = new THREE.TubeGeometry(cableCurve, 96, 0.022, 8, false);
       cableMesh.geometry.dispose();
       cableMesh.geometry = newGeo;
 
-      const newWireGeo = new THREE.EdgesGeometry(newGeo, 28);
+      const newWireGeo = new THREE.EdgesGeometry(newGeo, 24);
       cableWire.geometry.dispose();
       cableWire.geometry = newWireGeo;
     }

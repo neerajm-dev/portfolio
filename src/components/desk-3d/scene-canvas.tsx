@@ -755,12 +755,12 @@ export function SceneCanvas({
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // 9. 60FPS CAPPED SMART ANIMATION LOOP
+    // 9. NATIVE DISPLAY REFRESH RATE ANIMATION LOOP (120FPS+ Fluidity & Direct Engine Telemetry)
     let animationFrameId: number;
-    let lastRenderTime = 0;
     let lastDeltaTime = performance.now();
     let hasNotifiedReady = false;
-    const TARGET_FPS_INTERVAL = 1000 / 60; // 60 FPS cap
+    let fpsFrameCount = 0;
+    let fpsLastTime = performance.now();
 
     const animate = (now: number) => {
       animationFrameId = requestAnimationFrame(animate);
@@ -771,13 +771,23 @@ export function SceneCanvas({
         return;
       }
 
-      const elapsed = now - lastRenderTime;
-      if (elapsed < TARGET_FPS_INTERVAL) {
-        return;
+      fpsFrameCount++;
+      const fpsElapsed = now - fpsLastTime;
+      if (fpsElapsed >= 400) {
+        const engineFps = Math.min(240, Math.max(1, Math.round((fpsFrameCount * 1000) / fpsElapsed)));
+        const frameTime = +(1000 / engineFps).toFixed(1);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("neeraj:engine-fps", {
+              detail: { fps: engineFps, frameTime },
+            })
+          );
+        }
+        fpsFrameCount = 0;
+        fpsLastTime = now;
       }
-      lastRenderTime = now - (elapsed % TARGET_FPS_INTERVAL);
 
-      const delta = Math.min((now - lastDeltaTime) / 1000, 0.1);
+      const delta = Math.min((now - lastDeltaTime) / 1000, 0.05);
       lastDeltaTime = now;
 
       // 🟢 Mouse physics always runs in real-time (even during modal inspection)
