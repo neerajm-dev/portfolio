@@ -30,6 +30,16 @@ export function Phone3D({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const themeHex = theme.hex;
+  const themeHexRef = useRef(theme.hex);
+  const updateThemeRef = useRef<((hex: string) => void) | null>(null);
+
+  // Dynamic Theme Synchronization without reloading GLB or tearing down WebGL
+  useEffect(() => {
+    themeHexRef.current = theme.hex;
+    if (updateThemeRef.current) {
+      updateThemeRef.current(theme.hex);
+    }
+  }, [theme.hex]);
 
   // Three.js References for Raycasting & Scene Management
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -206,11 +216,11 @@ export function Phone3D({
     scene.add(rearFillLight);
 
     // Dual Dynamic Theme Rim Lights
-    const leftRimLight = new THREE.DirectionalLight(new THREE.Color(themeHex), 3.6);
+    const leftRimLight = new THREE.DirectionalLight(new THREE.Color(themeHexRef.current), 3.6);
     leftRimLight.position.set(-4, -1, 0);
     scene.add(leftRimLight);
 
-    const rightRimLight = new THREE.DirectionalLight(new THREE.Color(themeHex), 2.8);
+    const rightRimLight = new THREE.DirectionalLight(new THREE.Color(themeHexRef.current), 2.8);
     rightRimLight.position.set(4, 2, -1);
     scene.add(rightRimLight);
 
@@ -268,6 +278,7 @@ export function Phone3D({
 
     const renderScreenTexture = () => {
       if (!sCtx) return;
+      const currentHex = themeHexRef.current;
       const nowTime = getLiveTime();
       const activeId = activeWallpaperIdRef.current;
       const activeWp = getWallpaperById(activeId);
@@ -281,7 +292,7 @@ export function Phone3D({
         // =========================================================================
         const bgImg = loadedImages.get(activeId);
         if (bgImg) {
-          const tintedCanvas = createTintedWallpaperCanvas(bgImg, themeHex, 480, 960, activeWp);
+          const tintedCanvas = createTintedWallpaperCanvas(bgImg, currentHex, 480, 960, activeWp);
           sCtx.drawImage(tintedCanvas, 0, 0, 480, 960);
         } else {
           sCtx.fillStyle = "#03060c";
@@ -289,7 +300,7 @@ export function Phone3D({
         }
 
         // Ambient cyber grid overlay on wallpaper
-        sCtx.strokeStyle = `${themeHex}10`;
+        sCtx.strokeStyle = `${currentHex}10`;
         sCtx.lineWidth = 1;
         for (let x = 0; x < 480; x += 32) {
           sCtx.beginPath();
@@ -300,13 +311,13 @@ export function Phone3D({
 
         // 🟢 UPPER APP GRID (y: 200)
         // 1. KTCC Flagship App Icon (Real logo-rounded.png icon)
-        drawKtccAppIcon(sCtx, 95, 200, ktccLogoImg, themeHex);
+        drawKtccAppIcon(sCtx, 95, 200, ktccLogoImg, currentHex);
 
         // 🟢 BOTTOM QUICK ACCESS DOCK (y: 780)
         // Dock Item 1: Wallpaper App Icon (Left)
-        drawAppIcon(sCtx, 165, 780, "Wallpapers", themeHex, "palette");
+        drawAppIcon(sCtx, 165, 780, "Wallpapers", currentHex, "palette");
         // Dock Item 2: Terminal CLI Icon (Right)
-        drawAppIcon(sCtx, 315, 780, "Terminal", themeHex, "terminal");
+        drawAppIcon(sCtx, 315, 780, "Terminal", currentHex, "terminal");
       } else if (mode === "wallpapers") {
         // =========================================================================
         // 🟢 WALLPAPER GALLERY SCREEN: 4x3 INSTAGRAM REELS GRID (12 WALLPAPERS)
@@ -338,7 +349,7 @@ export function Phone3D({
           sCtx.clip();
 
           if (thumbImg) {
-            const tintedThumb = createTintedWallpaperCanvas(thumbImg, themeHex, cellW, cellH, wp);
+            const tintedThumb = createTintedWallpaperCanvas(thumbImg, currentHex, cellW, cellH, wp);
             sCtx.drawImage(tintedThumb, cellX, cellY, cellW, cellH);
           } else {
             sCtx.fillStyle = "#0f172a";
@@ -349,9 +360,9 @@ export function Phone3D({
           // Selection Border & Glow (Instagram / Cyber Aesthetic)
           if (isSelected) {
             sCtx.save();
-            sCtx.strokeStyle = themeHex;
+            sCtx.strokeStyle = currentHex;
             sCtx.lineWidth = 3.5;
-            sCtx.shadowColor = themeHex;
+            sCtx.shadowColor = currentHex;
             sCtx.shadowBlur = 10;
             sCtx.beginPath();
             sCtx.roundRect(cellX, cellY, cellW, cellH, 4);
@@ -359,7 +370,7 @@ export function Phone3D({
             sCtx.restore();
 
             // Active Badge in Top-Right Corner
-            sCtx.fillStyle = themeHex;
+            sCtx.fillStyle = currentHex;
             sCtx.beginPath();
             sCtx.arc(cellX + cellW - 14, cellY + 14, 10, 0, Math.PI * 2);
             sCtx.fill();
@@ -424,8 +435,8 @@ export function Phone3D({
       // Status Bar Right: Wi-Fi Icon + 100% Battery
       const wx = 345;
       const wy = 46;
-      sCtx.fillStyle = themeHex;
-      sCtx.strokeStyle = themeHex;
+      sCtx.fillStyle = currentHex;
+      sCtx.strokeStyle = currentHex;
       sCtx.lineWidth = 2.2;
       sCtx.lineCap = "round";
 
@@ -443,7 +454,7 @@ export function Phone3D({
 
       sCtx.textAlign = "left";
       sCtx.font = "700 17px Orbitron, monospace";
-      sCtx.fillStyle = themeHex;
+      sCtx.fillStyle = currentHex;
       sCtx.fillText("100%", 372, 46);
 
       // =========================================================================
@@ -487,6 +498,13 @@ export function Phone3D({
     };
 
     rerenderScreenRef.current = () => {
+      renderScreenTexture();
+      screenTexture.needsUpdate = true;
+    };
+
+    updateThemeRef.current = (newHex: string) => {
+      leftRimLight.color.set(new THREE.Color(newHex));
+      rightRimLight.color.set(new THREE.Color(newHex));
       renderScreenTexture();
       screenTexture.needsUpdate = true;
     };
@@ -664,9 +682,10 @@ export function Phone3D({
       clearInterval(timeInterval);
       container.removeEventListener("wheel", handleWheel);
       window.removeEventListener("resize", handleResize);
+      updateThemeRef.current = null;
       renderer.dispose();
     };
-  }, [themeHex]);
+  }, []);
 
   // Pointer drag listeners for 360° 3D inspection, multi-touch pinch-zoom, and touchscreen app clicks
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {

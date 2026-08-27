@@ -9,11 +9,14 @@ import { createLaptopMesh } from "./objects/laptop-mesh";
 import { createIdCardMesh } from "./objects/id-card-mesh";
 import { createPhoneMesh } from "./objects/phone-mesh";
 import { createCoffeeMesh } from "./objects/coffee-mesh";
-import { createCassetteMesh } from "./objects/cassette-mesh";
-import { createNotesMesh } from "./objects/notes-mesh";
 import { createChairMesh } from "./objects/chair-mesh";
 import { createHologramSphere } from "./objects/hologram-sphere";
 import { createMouseMesh } from "./objects/mouse-mesh";
+import { createClockMesh } from "./objects/clock-mesh";
+import { createRouterMesh } from "./objects/router-mesh";
+import { createWatchMesh } from "./objects/watch-mesh";
+import { createEthernetCableMesh } from "./objects/ethernet-cable-mesh";
+import { createFiberCableMesh } from "./objects/fiber-cable-mesh";
 
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 import { TerminalFont, DEFAULT_TERMINAL_FONT } from "@/lib/terminal-fonts";
@@ -23,10 +26,11 @@ export type InteractivePropId =
   | "laptop"
   | "phone"
   | "coffee"
-  | "cassette"
-  | "notes"
   | "hologram"
-  | "mouse";
+  | "mouse"
+  | "clock"
+  | "router"
+  | "watch";
 
 interface SceneCanvasProps {
   onSelectObject: (id: InteractivePropId) => void;
@@ -329,13 +333,20 @@ export function SceneCanvas({
     triggerCoffeeSipRef.current = coffee.triggerSipAnimation;
     coffee.setCoffeeLevel(caffeineLevel, true);
 
-    const cassette = createCassetteMesh();
-    cassette.group.position.set(-4.2, 0.028, 0.9);
-    scene.add(cassette.group);
+    const clock = createClockMesh();
+    scene.add(clock.group);
 
-    const notes = createNotesMesh();
-    notes.group.position.set(-4.4, 0.032, -0.6);
-    scene.add(notes.group);
+    const router = createRouterMesh();
+    scene.add(router.group);
+
+    const watch = createWatchMesh();
+    scene.add(watch.group);
+
+    const ethernetCable = createEthernetCableMesh();
+    scene.add(ethernetCable.group);
+
+    const fiberCable = createFiberCableMesh();
+    scene.add(fiberCable.group);
 
     const hologram = createHologramSphere();
     scene.add(hologram.group);
@@ -377,8 +388,11 @@ export function SceneCanvas({
       mouse.setTheme(newTheme);
       phone.setTheme(newTheme);
       coffee.setTheme(newTheme);
-      cassette.setTheme(newTheme);
-      notes.setTheme(newTheme);
+      clock.setTheme(newTheme);
+      router.setTheme(newTheme);
+      watch.setTheme(newTheme);
+      ethernetCable.setTheme(newTheme);
+      fiberCable.setTheme(newTheme);
       hologram.setTheme(newTheme);
     };
 
@@ -409,8 +423,9 @@ export function SceneCanvas({
       mouse.mouseHitbox,
       createHitbox("phone", [1.10, 0.35, 1.80], [3.70, 0.1, 0.90]),
       createHitbox("coffee", [1.2, 1.2, 1.2], [5.50, 0.5, 2.65]),
-      createHitbox("cassette", [1.8, 0.8, 1.4], [-4.2, 0.3, 0.9]),
-      createHitbox("notes", [1.6, 0.5, 1.6], [-4.4, 0.1, -0.6]),
+      clock.clockHitbox,
+      router.routerHitbox,
+      watch.watchHitbox,
       hologram.holoMesh,
     ];
 
@@ -793,18 +808,20 @@ export function SceneCanvas({
       // 🟢 Mouse physics always runs in real-time (even during modal inspection)
       mouse.updateMouse(delta);
 
-      // Update animated props when not paused by active modal
-      if (!isPausedRef.current) {
-        coffee.updateSteam(delta);
-        cassette.updateDeck(delta, sound.getEnabled());
-        idCard.updateCard(delta);
-        hologram.updateHolo(delta);
+      // 🟢 Keep all lively workstation prop animations running fluidly in real-time (never freeze on inspection)
+      coffee.updateSteam(delta);
+      idCard.updateCard(delta);
+      hologram.updateHolo(delta);
+      clock.updateClock(delta);
+      router.updateRouter(delta);
+      watch.updateWatch(delta);
+      ethernetCable.updateCable(delta);
+      fiberCable.updateFiber(delta);
 
-        // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
-        currentCamDist += (targetCamDist - currentCamDist) * 0.10;
-        currentAzimuth += (targetAzimuth - currentAzimuth) * 0.09;
-        currentElevation += (targetElevation - currentElevation) * 0.09;
-      }
+      // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
+      currentCamDist += (targetCamDist - currentCamDist) * 0.10;
+      currentAzimuth += (targetAzimuth - currentAzimuth) * 0.09;
+      currentElevation += (targetElevation - currentElevation) * 0.09;
 
       const camX =
         lookTarget.x +

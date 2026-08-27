@@ -1,0 +1,222 @@
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
+
+/**
+ * 3D Tactical Digital Wristwatch with Dynamic IST Canvas Display
+ * Laid down casually on the front-left corner of the desk, showing synchronized IST time.
+ */
+export function createWatchMesh(): {
+  group: THREE.Group;
+  watchHitbox: THREE.Mesh;
+  setTheme: (theme: WorkstationTheme) => void;
+  updateWatch: (delta: number) => void;
+} {
+  const group = new THREE.Group();
+  group.name = "digital-watch-system";
+
+  // 1. CASUAL LAY-DOWN POSITION ON FRONT-LEFT DESK WING (Target Location)
+  const WATCH_POS = new THREE.Vector3(-5.2, 0.028, 3.6);
+  const WATCH_ROT_Y = Math.PI / 5; // Casual ~36° angle towards operator
+  const WATCH_ROT_X = 0.08; // Subtle ergonomic tilt
+
+  group.position.copy(WATCH_POS);
+  group.rotation.y = WATCH_ROT_Y;
+  group.rotation.x = WATCH_ROT_X;
+
+  // 2. HITBOX FOR RAYCASTING
+  const hitboxGeo = new THREE.BoxGeometry(1.0, 0.5, 1.0);
+  const hitboxMat = new THREE.MeshBasicMaterial({ visible: false });
+  const watchHitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
+  watchHitbox.position.set(0, 0.25, 0);
+  watchHitbox.userData = { id: "watch", interactive: true };
+  group.add(watchHitbox);
+
+  // 3. DYNAMIC LCD CANVAS TEXTURE (512x512)
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+
+  const watchTexture = new THREE.CanvasTexture(canvas);
+  watchTexture.flipY = false;
+  watchTexture.minFilter = THREE.LinearFilter;
+  watchTexture.magFilter = THREE.LinearFilter;
+  watchTexture.colorSpace = THREE.SRGBColorSpace;
+
+  let currentThemeHex = DEFAULT_THEME.hex;
+  let lastSec = -1;
+
+  const renderWatchFace = () => {
+    if (!ctx) return;
+
+    // Dark LCD backlight background
+    ctx.fillStyle = "#05090f";
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Subtle LCD matrix grid
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 512; i += 8) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(512, i);
+      ctx.stroke();
+    }
+
+    const now = new Date();
+    const istTimeStr = now.toLocaleTimeString("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+
+    const dayName = now.toLocaleDateString("en-US", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+    }).toUpperCase();
+
+    const monthDay = now.toLocaleDateString("en-US", {
+      timeZone: "Asia/Kolkata",
+      month: "numeric",
+      day: "numeric",
+    });
+
+    // Top Header: DAY & DATE
+    ctx.font = "bold 42px monospace";
+    ctx.fillStyle = `${currentThemeHex}cc`;
+    ctx.fillText(`${dayName}  ${monthDay}`, 60, 110);
+
+    // Mode indicator
+    ctx.font = "bold 28px monospace";
+    ctx.fillStyle = currentThemeHex;
+    ctx.fillText("IST 24H", 340, 110);
+
+    // Decorative divider line
+    ctx.strokeStyle = `${currentThemeHex}66`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(50, 140);
+    ctx.lineTo(462, 140);
+    ctx.stroke();
+
+    // Main Time: HH:MM:SS
+    ctx.font = "bold 74px monospace";
+    ctx.fillStyle = currentThemeHex;
+    ctx.fillText(istTimeStr, 60, 270);
+
+    // Sub-text: WATER RESIST / CHRONO
+    ctx.font = "bold 26px monospace";
+    ctx.fillStyle = `${currentThemeHex}99`;
+    ctx.fillText("WR 50M • TACTICAL CHRONO", 70, 370);
+    ctx.fillText("NEERAJ_M // ATOMIC_SYNC", 80, 425);
+
+    watchTexture.needsUpdate = true;
+  };
+
+  renderWatchFace();
+
+  // 4. MODEL LOADING WITH PROCEDURAL FALLBACK
+  const modelContainer = new THREE.Group();
+  group.add(modelContainer);
+
+  let faceMaterial: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial | null = null;
+  const wireMaterials: THREE.LineBasicMaterial[] = [];
+
+  // Realistic watch dimensions: 12.5x scale brings model to sleek ~0.9 units across desk
+  const WATCH_SCALE = 12.5;
+
+  // Fallback while loading
+  const fallbackGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.18, 16);
+  const fallbackMat = new THREE.MeshStandardMaterial({
+    color: 0x0c121a,
+    roughness: 0.4,
+    metalness: 0.5,
+  });
+  const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+  fallbackMesh.position.set(0, 0.09, 0);
+  modelContainer.add(fallbackMesh);
+
+  const loader = new GLTFLoader();
+  loader.load(
+    "/models/digital_watch.glb",
+    (gltf) => {
+      modelContainer.remove(fallbackMesh);
+      fallbackGeo.dispose();
+      fallbackMat.dispose();
+
+      const watchScene = gltf.scene;
+      watchScene.scale.set(WATCH_SCALE, WATCH_SCALE, WATCH_SCALE);
+
+      // Lay down flat on its side/strap with face tilted up towards user
+      watchScene.rotation.set(-0.25, 0.35, -Math.PI / 2);
+      watchScene.position.set(0, 0.16, 0); // Elevation so side rests flush on tabletop (touching table)
+
+      watchScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+
+          if (
+            mesh.name.toLowerCase().includes("face") ||
+            (mesh.material && (mesh.material as THREE.Material).name.toLowerCase().includes("face"))
+          ) {
+            const mat = new THREE.MeshStandardMaterial({
+              map: watchTexture,
+              emissiveMap: watchTexture,
+              emissive: new THREE.Color(currentThemeHex),
+              emissiveIntensity: 1.4,
+              roughness: 0.15,
+              metalness: 0.6,
+            });
+            mesh.material = mat;
+            faceMaterial = mat;
+          }
+
+          // Subtle neon wireframe contour
+          const edges = new THREE.EdgesGeometry(mesh.geometry, 28);
+          const wireMat = new THREE.LineBasicMaterial({
+            color: DEFAULT_THEME.threeColor,
+            transparent: true,
+            opacity: 0.3,
+          });
+          const wire = new THREE.LineSegments(edges, wireMat);
+          mesh.add(wire);
+          wireMaterials.push(wireMat);
+        }
+      });
+
+      modelContainer.add(watchScene);
+    },
+    undefined,
+    (err) => console.warn("Could not load /models/digital_watch.glb:", err)
+  );
+
+  // 5. UPDATE TICK
+  const updateWatch = () => {
+    const currentSec = new Date().getSeconds();
+    if (currentSec !== lastSec) {
+      lastSec = currentSec;
+      renderWatchFace();
+    }
+  };
+
+  const setTheme = (theme: WorkstationTheme) => {
+    currentThemeHex = theme.hex;
+    wireMaterials.forEach((m) => m.color.setHex(theme.threeColor));
+    if (faceMaterial) {
+      faceMaterial.emissive.setHex(theme.threeColor);
+    }
+    renderWatchFace();
+  };
+
+  return {
+    group,
+    watchHitbox,
+    setTheme,
+    updateWatch,
+  };
+}
