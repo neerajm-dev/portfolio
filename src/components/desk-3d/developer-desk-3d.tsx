@@ -32,6 +32,8 @@ const QUICK_COMMANDS = [
   "mouse",
   "font",
   "color",
+  "credits",
+  "license",
   "stack",
   "socials",
   "reset",
@@ -404,7 +406,7 @@ export function DeveloperDesk3D() {
     } else {
       switch (clean) {
         case "help":
-          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, mouse, font, color, brotoraise, stack, socials, reset, clear";
+          responseLine = "[HELP] Commands: whoami, avatar, ktcc, coffee, mouse, font, color, credits, license, brotoraise, stack, socials, reset, clear";
           break;
         case "whoami":
           responseLine = `[WHOAMI] Neeraj M (${DEVELOPER_PROFILE.age}yo) // BCA @ SNCT Kollam, Kerala`;
@@ -418,7 +420,12 @@ export function DeveloperDesk3D() {
           responseLine = `[MOUSE] Tactical Gaming Mouse // ${DPI_PRESETS[dpiIndexRef.current % DPI_PRESETS.length]} DPI // 1000Hz Optical Sensor // Braided USB-A (3D Model by jerard27, CC BY 4.0)`;
           break;
         case "credits":
-          responseLine = "[CREDITS] 3D Models: Gaming Mouse by jerard27 (CC BY 4.0), Mobile Phone by Alain Sorazu (CC BY-SA 4.0) // Architecture by Neeraj M";
+        case "attribution":
+        case "author":
+          responseLine = "[CREDITS] 3D Workstation Architecture by Neeraj M (@neerajm-dev) // 3D Models: Gaming Mouse (jerard27), Phone (Alain Sorazu), Watch (Mateusz Woliński), Router (SanForge Studio) [CC BY 4.0]";
+          break;
+        case "license":
+          responseLine = "[LICENSE] MIT License + Non-Commercial & Mandatory Visible UI Attribution Clause (@neerajm-dev)";
           break;
         case "ktcc":
         case "phone":
@@ -480,15 +487,6 @@ export function DeveloperDesk3D() {
     setSoundEnabled(sound.getEnabled());
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If modal is open, only handle Escape
-      if (activeModal !== "none") {
-        if (e.key === "Escape") {
-          setActiveModal("none");
-          sound.playClick();
-        }
-        return;
-      }
-
       // If help dialog is open
       if (showHelp) {
         if (e.key === "Escape" || e.key === "?") {
@@ -498,7 +496,7 @@ export function DeveloperDesk3D() {
         return;
       }
 
-      // 0. Interactive CLI Color Picker Mode
+      // 0. Interactive CLI Color Picker Mode (Works seamlessly in full desk view or while inspecting phone)
       if (pickerMode === "color") {
         if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -657,6 +655,15 @@ export function DeveloperDesk3D() {
         return;
       }
 
+      // If inspecting a non-phone modal (e.g. ID card, notes, coffee) while not in picker mode, only handle Escape
+      if (activeModal !== "none" && activeModal !== "phone") {
+        if (e.key === "Escape") {
+          setActiveModal("none");
+          sound.playClick();
+        }
+        return;
+      }
+
       // If typing inside our input element, let the input tag handle text input natively for virtual keyboards
       if (document.activeElement === inputRef.current) {
         if (e.key === "Enter") {
@@ -767,9 +774,15 @@ export function DeveloperDesk3D() {
         return;
       }
 
-      // 6. Escape -> Clear current typing input
+      // 6. Escape -> Close modal if open, otherwise clear typing input
       if (e.key === "Escape") {
         e.preventDefault();
+        if (activeModal !== "none") {
+          setActiveModal("none");
+          setInput("");
+          sound.playClick();
+          return;
+        }
         setInput("");
         setHistoryIndex(-1);
         sound.playClick();
@@ -804,13 +817,6 @@ export function DeveloperDesk3D() {
         break;
       case "phone":
         setActiveModal("phone");
-        break;
-      case "notes":
-        setActiveModal("sticky-note");
-        break;
-      case "cassette":
-        const next = sound.toggle();
-        setSoundEnabled(next);
         break;
       case "mouse": {
         sound.playClick(1.8);
@@ -909,6 +915,49 @@ export function DeveloperDesk3D() {
             setActiveModal("coffee");
           }, 950);
         }
+        break;
+      }
+      case "clock": {
+        sound.playNodePulse();
+        const now = new Date();
+        const istStr = now.toLocaleTimeString("en-US", {
+          timeZone: "Asia/Kolkata",
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [EVENT] ATOMIC_CLOCK: IST SYNC`,
+          `[SYS] IST TIME: ${istStr} (UTC+5:30) // 7-SEGMENT LED DISPLAY // ASIA/KOLKATA ⏰`,
+        ]);
+        break;
+      }
+      case "router": {
+        sound.playNodePulse();
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [EVENT] GATEWAY_ROUTER: GIGABIT_AC2600`,
+          `[SYS] LINK: ACTIVE // LATENCY: 4ms // BANDWIDTH: 1.0 Gbps // STATUS: 100% HEALTHY 🌐`,
+        ]);
+        break;
+      }
+      case "watch": {
+        sound.playClick(1.8);
+        const now = new Date();
+        const istStr = now.toLocaleTimeString("en-US", {
+          timeZone: "Asia/Kolkata",
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [EVENT] TACTICAL_CHRONO: ATOMIC_CALIBRATION`,
+          `[SYS] WRISTWATCH TIME: ${istStr} // WR 50M // BATTLESTATION_SYNCED ⌚`,
+        ]);
         break;
       }
     }
@@ -1126,7 +1175,9 @@ export function DeveloperDesk3D() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={closeModal}
-            className="fixed inset-0 z-50 bg-black/60 flex flex-col items-center justify-center p-3 sm:p-6"
+            className={`fixed inset-0 z-50 ${
+              activeModal === "phone" ? "bg-black/25 backdrop-blur-[0.5px]" : "bg-black/60"
+            } flex flex-col items-center justify-center p-3 sm:p-6`}
           >
             {/* Selected Modal */}
             {activeModal === "phone" ? (

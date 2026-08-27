@@ -94,8 +94,20 @@ export function Footer() {
 
       {/* Bottom Legal / Watermark Bar */}
       <div className="max-w-7xl mx-auto pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-[11px] text-gray-500">
-        <div>
-          © {new Date().getFullYear()} Neeraj M. All Rights Reserved. Extended Mind Architecture.
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+          <span>© {new Date().getFullYear()} Neeraj M. All Rights Reserved.</span>
+          <span className="hidden sm:inline text-white/20">•</span>
+          <span>
+            Original 3D Workstation Architecture by{" "}
+            <a
+              href="https://github.com/neerajm-dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-[#00f0ff] font-semibold underline underline-offset-2 transition-colors"
+            >
+              Neeraj M (@neerajm-dev)
+            </a>
+          </span>
         </div>
 
         <button

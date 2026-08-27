@@ -20,6 +20,8 @@ const INITIAL_COMMANDS = [
   "stack",
   "lab",
   "matrix",
+  "credits",
+  "license",
   "socials",
   "sound",
   "clear",
@@ -86,6 +88,8 @@ export function TerminalCli() {
                 <div><span className="text-[#00f0ff] font-bold">stack</span> — $0.00/mo cloud infrastructure breakdown</div>
                 <div><span className="text-[#00f0ff] font-bold">lab</span> — Jump to ACID SQL Ledger Sandbox</div>
                 <div><span className="text-[#00f0ff] font-bold">matrix</span> — Stream green cyber ASCII matrix</div>
+                <div><span className="text-[#00f0ff] font-bold">credits</span> — 3D Workstation author & asset credits</div>
+                <div><span className="text-[#00f0ff] font-bold">license</span> — Open-source license & attribution terms</div>
                 <div><span className="text-[#00f0ff] font-bold">socials</span> — Direct GitHub, Instagram & Email links</div>
                 <div><span className="text-[#00f0ff] font-bold">sound</span> — Toggle Web Audio synthesized SFX</div>
                 <div><span className="text-[#00f0ff] font-bold">clear</span> — Wipe terminal logs</div>
@@ -205,6 +209,41 @@ export function TerminalCli() {
               <div>• Instagram: <a href="https://instagram.com/neerajm_dev" target="_blank" className="text-[#00f0ff] underline">@neerajm_dev</a></div>
               <div>• Email: <span className="text-[#10b981]">hi.neerajm@gmail.com</span></div>
               <div>• Portfolio: <a href="https://neerajm.vercel.app" target="_blank" className="text-[#00f0ff] underline">neerajm.vercel.app</a></div>
+            </div>
+          ),
+        };
+        break;
+
+      case "credits":
+      case "attribution":
+      case "author":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#00f0ff] font-bold">3D WORKSTATION & PORTFOLIO CREDITS</div>
+              <div>• Original Architecture & Design: <a href="https://github.com/neerajm-dev" target="_blank" className="text-[#10b981] font-bold underline">Neeraj M (@neerajm-dev)</a></div>
+              <div>• 3D Gaming Mouse: <span className="text-gray-400">jerard27 (Sketchfab • CC BY 4.0)</span></div>
+              <div>• 3D Smartphone: <span className="text-gray-400">Alain Sorazu (Sketchfab • CC BY-SA 4.0)</span></div>
+              <div>• 3D Digital Watch: <span className="text-gray-400">SpatialNeglect / Mateusz Woliński (Sketchfab • CC BY 4.0)</span></div>
+              <div>• 3D Battlestation Router: <span className="text-gray-400">SanForge Studio (Sketchfab • CC BY 4.0)</span></div>
+              <div>• 3D Digital Clock: <span className="text-gray-400">In-house procedural model by Neeraj M</span></div>
+            </div>
+          ),
+        };
+        break;
+
+      case "license":
+        outputEntry = {
+          id: Math.random().toString(),
+          type: "output",
+          content: (
+            <div className="space-y-1 text-xs md:text-sm font-mono text-gray-300">
+              <div className="text-[#00f0ff] font-bold">OPEN SOURCE LICENSE & BRAND PROTECTION</div>
+              <div>• License Type: <span className="text-white font-bold">MIT with Non-Commercial & Brand Protection Clause</span></div>
+              <div>• Mandatory UI Attribution: Any public web deployment derived from this codebase MUST keep visible footer credit to <a href="https://github.com/neerajm-dev" target="_blank" className="text-[#10b981] underline font-bold">@neerajm-dev</a>.</div>
+              <div>• Commercial Resale: <span className="text-red-400 font-bold">Strictly prohibited</span> as a paid theme or template.</div>
             </div>
           ),
         };

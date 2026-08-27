@@ -86,7 +86,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to enter the
 
 ## 📄 License & Attribution
 
-This project is licensed under a custom **MIT License with Non-Commercial & Brand Protection Clauses**. You are welcome to inspect, study, and learn from the code for educational and open-source purposes. Personal branding assets and avatar are strictly reserved. See [`LICENSE.md`](LICENSE.md) for details.
+This project is licensed under a custom **MIT License with Non-Commercial & Mandatory Public UI Attribution Clauses**. You are welcome to inspect, study, and learn from the code for educational and open-source purposes. Any public web deployments derived from this codebase must maintain visible attribution to [@neerajm-dev](https://github.com/neerajm-dev) in the website footer or about modal. Personal branding assets and avatar are strictly reserved. See [`LICENSE.md`](LICENSE.md) and [`LICENSE`](LICENSE) for details.
+
+### 🎨 3D Model Credits & Licenses
+- **3D Router:** ["3D Router"](https://skfb.ly/o7Ipv) by SanForge Studio / Grand Dog Studio ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
+- **Notepad:** ["Notepad"](https://skfb.ly/oPNXP) by FractalSpace ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)) — *Decimated & WebP-optimized for high-performance WebGL*
+- **Digital Watch:** ["Digital Watch"](https://skfb.ly/oxPtV) by SpatialNeglect / Mateusz Woliński ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
+- **Gaming Mouse:** ["Gaming Mouse"](https://skfb.ly/p8Gty) by jerard27 ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
+- **Mobile Phone:** ["Mobile phone"](https://skfb.ly/6S6wG) by Alain Sorazu ([CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/))
+- **Digital Alarm Clock:** Custom modeled in-house by Neeraj M / Antigravity AI (`public/models/digital_clock.glb`, 61 KB)
 
 ---
 
