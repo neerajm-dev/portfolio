@@ -5,6 +5,7 @@ import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 /**
  * 3D Tactical Digital Wristwatch with Dynamic IST Canvas Display
  * Laid down casually on the front-left corner of the desk, showing synchronized IST time.
+ * Corrected right-side-up, centered, un-mirrored UV texture mapping.
  */
 export function createWatchMesh(): {
   group: THREE.Group;
@@ -15,7 +16,7 @@ export function createWatchMesh(): {
   const group = new THREE.Group();
   group.name = "digital-watch-system";
 
-  // 1. CASUAL LAY-DOWN POSITION ON FRONT-LEFT DESK WING (Target Location)
+  // 1. CASUAL LAY-DOWN POSITION ON FRONT-LEFT DESK WING
   const WATCH_POS = new THREE.Vector3(-5.2, 0.028, 3.6);
   const WATCH_ROT_Y = Math.PI / 5; // Casual ~36° angle towards operator
   const WATCH_ROT_X = 0.08; // Subtle ergonomic tilt
@@ -38,7 +39,11 @@ export function createWatchMesh(): {
   canvas.height = 512;
   const ctx = canvas.getContext("2d");
 
+  // Correct texture orientation: Rotate 90° to the left (counter-clockwise) from previous angle
   const watchTexture = new THREE.CanvasTexture(canvas);
+  watchTexture.center.set(0.5, 0.5);
+  watchTexture.rotation = Math.PI;
+  watchTexture.repeat.set(-1, 1);
   watchTexture.flipY = false;
   watchTexture.minFilter = THREE.LinearFilter;
   watchTexture.magFilter = THREE.LinearFilter;
@@ -51,7 +56,7 @@ export function createWatchMesh(): {
     if (!ctx) return;
 
     // Dark LCD backlight background
-    ctx.fillStyle = "#05090f";
+    ctx.fillStyle = "#04080e";
     ctx.fillRect(0, 0, 512, 512);
 
     // Subtle LCD matrix grid
@@ -84,34 +89,41 @@ export function createWatchMesh(): {
       day: "numeric",
     });
 
-    // Top Header: DAY & DATE
-    ctx.font = "bold 42px monospace";
+    // Center all text horizontally inside the circular LCD bezel
+    ctx.textAlign = "center";
+
+    // Top Header: DAY & DATE • IST 24H
+    ctx.font = "bold 32px monospace";
     ctx.fillStyle = `${currentThemeHex}cc`;
-    ctx.fillText(`${dayName}  ${monthDay}`, 60, 110);
+    ctx.fillText(`${dayName}  ${monthDay} • 24H`, 256, 125);
 
-    // Mode indicator
-    ctx.font = "bold 28px monospace";
-    ctx.fillStyle = currentThemeHex;
-    ctx.fillText("IST 24H", 340, 110);
-
-    // Decorative divider line
+    // Decorative top divider line
     ctx.strokeStyle = `${currentThemeHex}66`;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(50, 140);
-    ctx.lineTo(462, 140);
+    ctx.moveTo(75, 155);
+    ctx.lineTo(437, 155);
     ctx.stroke();
 
     // Main Time: HH:MM:SS
-    ctx.font = "bold 74px monospace";
+    ctx.font = "bold 68px monospace";
     ctx.fillStyle = currentThemeHex;
-    ctx.fillText(istTimeStr, 60, 270);
+    ctx.fillText(istTimeStr, 256, 255);
+
+    // Decorative bottom divider line
+    ctx.beginPath();
+    ctx.moveTo(90, 295);
+    ctx.lineTo(422, 295);
+    ctx.stroke();
 
     // Sub-text: WATER RESIST / CHRONO
-    ctx.font = "bold 26px monospace";
+    ctx.font = "bold 22px monospace";
     ctx.fillStyle = `${currentThemeHex}99`;
-    ctx.fillText("WR 50M • TACTICAL CHRONO", 70, 370);
-    ctx.fillText("NEERAJ_M // ATOMIC_SYNC", 80, 425);
+    ctx.fillText("WR 50M • TACTICAL CHRONO", 256, 345);
+
+    ctx.font = "bold 18px monospace";
+    ctx.fillStyle = `${currentThemeHex}80`;
+    ctx.fillText("NEERAJ_M // ATOMIC_SYNC", 256, 395);
 
     watchTexture.needsUpdate = true;
   };
@@ -152,7 +164,7 @@ export function createWatchMesh(): {
 
       // Lay down flat on its side/strap with face tilted up towards user
       watchScene.rotation.set(-0.25, 0.35, -Math.PI / 2);
-      watchScene.position.set(0, 0.16, 0); // Elevation so side rests flush on tabletop (touching table)
+      watchScene.position.set(0, 0.16, 0); // Elevation so side rests flush on tabletop
 
       watchScene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {

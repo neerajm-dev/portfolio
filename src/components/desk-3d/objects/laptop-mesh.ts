@@ -139,23 +139,23 @@ function createTufLidBackTexture(): {
       }
     }
 
-    // 4. Luminous Neon Cyber Triangle Emblem (Center: 512, 310)
+    // 4. Luminous Neon Cyber Triangle Emblem (Centered inside Core Box at 512, 320)
     ctx.save();
-    ctx.translate(512, 310);
+    ctx.translate(512, 320);
 
     ctx.shadowColor = themeHex;
-    ctx.shadowBlur = 42;
+    ctx.shadowBlur = 36;
 
-    const outerTop = { x: 0, y: -95 };
-    const outerLeft = { x: -105, y: 80 };
-    const outerRight = { x: 105, y: 80 };
+    const outerTop = { x: 0, y: -65 };
+    const outerLeft = { x: -75, y: 55 };
+    const outerRight = { x: 75, y: 55 };
 
-    const innerTop = { x: 0, y: -45 };
-    const innerLeft = { x: -55, y: 48 };
-    const innerRight = { x: 55, y: 48 };
+    const innerTop = { x: 0, y: -30 };
+    const innerLeft = { x: -38, y: 32 };
+    const innerRight = { x: 38, y: 32 };
 
     // A. Outer Glowing Triangle Ring with Inner Cutout
-    const triGrad = ctx.createLinearGradient(0, -95, 0, 80);
+    const triGrad = ctx.createLinearGradient(0, -65, 0, 55);
     triGrad.addColorStop(0, "#ffffff");
     triGrad.addColorStop(0.5, themeHex);
     triGrad.addColorStop(1, `${themeHex}b3`);
@@ -175,7 +175,7 @@ function createTufLidBackTexture(): {
 
     // B. Outer Neon Border Stroke
     ctx.strokeStyle = themeHex;
-    ctx.lineWidth = 4.5;
+    ctx.lineWidth = 3.8;
     ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(outerTop.x, outerTop.y);
@@ -186,7 +186,7 @@ function createTufLidBackTexture(): {
 
     // C. Inner Frame Border Stroke
     ctx.strokeStyle = `${themeHex}d9`;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.6;
     ctx.beginPath();
     ctx.moveTo(innerTop.x, innerTop.y);
     ctx.lineTo(innerRight.x, innerRight.y);

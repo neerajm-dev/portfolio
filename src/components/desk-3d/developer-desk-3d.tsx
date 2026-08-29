@@ -960,6 +960,14 @@ export function DeveloperDesk3D() {
         ]);
         break;
       }
+      case "power-board": {
+        setTerminalLines((lines) => [
+          ...lines.slice(-6),
+          `[neeraj@sys ~]$ [EVENT] POWER_DELIVERY: 4-SOCKET SURGE PROTECTOR`,
+          `[SYS] MAINS: 240V AC 50Hz // ASUS TUF 200W + ROUTER 12V DC // STATUS: SURGE PROTECTED ⚡`,
+        ]);
+        break;
+      }
     }
   }, [caffeine]);
 

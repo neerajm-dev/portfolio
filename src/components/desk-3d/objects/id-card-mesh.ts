@@ -376,11 +376,11 @@ export function createIdCardMesh(): {
   renderFrontCard(DEFAULT_THEME.hex);
   renderBackCard(DEFAULT_THEME.hex);
 
-  // 3. CARD MESH WITH 3D BEVELED SLAB (Realistic 85.6mm x 54mm ID Badge Proportions)
-  const cw = 1.55;
-  const ch = 0.98;
-  const cRad = 0.06;
-  const cDepth = 0.014;
+  // 3. CARD MESH WITH 3D BEVELED SLAB (Credit Card ISO 85.6mm x 53.98mm Proportions)
+  const cw = 0.96;
+  const ch = 0.60;
+  const cRad = 0.036;
+  const cDepth = 0.009;
 
   const halfW = cw / 2;
   const halfH = ch / 2;

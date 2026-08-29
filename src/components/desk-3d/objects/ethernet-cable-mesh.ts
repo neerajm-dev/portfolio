@@ -19,49 +19,51 @@ export function createEthernetCableMesh(): {
   const group = new THREE.Group();
   group.name = "ethernet-cat7-cable-system";
 
-  // 1. GENERATE CONTINUOUS 5-METER PARAMETRIC SPLINE WITH HIGH-VOLUME COIL BEHIND ROUTER
-  const coilCenter = new THREE.Vector3(-3.65, 0.038, -1.90);
-  const coilRadius = 0.32;
-  const numLoops = 4.75;
-  const coilSteps = 60;
-  const thetaStart = Math.PI;
+  // 1. GENERATE CONTINUOUS 5-METER PARAMETRIC SPLINE WITH HIGH-VOLUME SMOOTH COIL BEHIND ROUTER
+  const coilCenter = new THREE.Vector3(-3.05, 0.038, -1.82);
+  const coilRadius = 0.30;
+  const numLoops = 4.5;
+  const totalCoilSteps = 144;
+  const thetaStart = Math.PI; // Join at left side of coil heading along -Z
 
   const splinePoints: THREE.Vector3[] = [
     // A) Router LAN1 Port Connection & Tangent Drop Behind Router
     new THREE.Vector3(-3.910, 0.245, -0.920), // Inside Router LAN1 socket
     new THREE.Vector3(-3.826, 0.245, -1.123), // Exiting rubber boot
-    new THREE.Vector3(-3.760, 0.215, -1.260), // Straight backward tangent
-    new THREE.Vector3(-3.740, 0.130, -1.480), // Drop behind router
-    new THREE.Vector3(-3.780, 0.055, -1.700), // Table approach
-    new THREE.Vector3(-3.880, 0.038, -1.850), // Join coil
+    new THREE.Vector3(-3.720, 0.190, -1.300), // Drop behind router
+    new THREE.Vector3(-3.560, 0.110, -1.520), // Heading right toward coil
+    new THREE.Vector3(-3.380, 0.052, -1.700), // Table approach
+    new THREE.Vector3(-3.350, 0.038, -1.820), // Seamless tangential join at left of coil (th = PI)
   ];
 
-  // B) High-Volume Multi-Layer Circular Desktop Coil Loops (Shifted Right & Backward)
-  for (let i = 1; i < coilSteps; i++) {
-    const frac = i / (coilSteps - 1);
+  // B) Ultra-Smooth Multi-Layer Circular Desktop Coil Loops (Zero Jagged Kinks)
+  for (let i = 1; i <= totalCoilSteps; i++) {
+    const frac = i / totalCoilSteps;
     const th = thetaStart + frac * numLoops * 2 * Math.PI;
-    // Multi-strand organic bundle thickness with radial variations
-    const r = coilRadius + 0.024 * Math.sin(th * 2.5) + ((i % 5) - 2) * 0.008;
+    // Smooth, organic radial variations across continuous turns (no sawtooth noise)
+    const r = coilRadius + 0.015 * Math.sin(th * 2) + 0.008 * Math.cos(th * 3) + (frac - 0.5) * 0.014;
     const x = coilCenter.x + r * Math.cos(th);
     const z = coilCenter.z + r * Math.sin(th);
-    // Vertical stacking height so loops build substantial 3D volume
-    const y = coilCenter.y + 0.006 + 0.016 * Math.sin(frac * Math.PI) + frac * 0.028;
+    // Smooth vertical stacking so loops build realistic 3D cable bundle volume
+    const y = coilCenter.y + 0.008 + frac * 0.028 + 0.006 * Math.sin(frac * Math.PI);
     splinePoints.push(new THREE.Vector3(x, y, z));
   }
 
-  // C) Lead-out from Coil Around Router to Laptop RJ-45 Port
+  // C) Lead-out from Coil Around Router to Laptop RJ-45 Port (Exiting Right Flank Tangentially along +Z)
+  // Exact Laptop RJ-45 Boot Axis: Y = 0.097, Z = 0.950, pointing along -X
   splinePoints.push(
-    new THREE.Vector3(-3.500, 0.065, -1.550), // Exiting coil tangentially at bottom
-    new THREE.Vector3(-3.320, 0.050, -1.400),
-    new THREE.Vector3(-3.150, 0.038, -1.200),
-    new THREE.Vector3(-2.980, 0.038, -0.950),
-    new THREE.Vector3(-2.820, 0.038, -0.650),
-    new THREE.Vector3(-2.680, 0.038, -0.300),
-    new THREE.Vector3(-2.580, 0.038,  0.100),
-    new THREE.Vector3(-2.480, 0.040,  0.450),
-    new THREE.Vector3(-2.400, 0.055,  0.720),
-    new THREE.Vector3(-2.340, 0.086,  0.900),
-    new THREE.Vector3(-2.210, 0.097,  0.950) // Laptop RJ-45 socket contact
+    new THREE.Vector3(-2.750, 0.050, -1.700), // Exiting coil right flank tangentially heading +Z
+    new THREE.Vector3(-2.740, 0.038, -1.400), // Smooth touchdown on desk mat
+    new THREE.Vector3(-2.700, 0.038, -1.050),
+    new THREE.Vector3(-2.660, 0.038, -0.650),
+    new THREE.Vector3(-2.650, 0.038, -0.200),
+    new THREE.Vector3(-2.650, 0.038,  0.250), // Outer lane on desk mat
+    new THREE.Vector3(-2.650, 0.038,  0.600), // Desk mat lane
+    new THREE.Vector3(-2.620, 0.060,  0.800), // Smooth catenary rise towards RJ-45 height
+    new THREE.Vector3(-2.550, 0.085,  0.920), // Aligning onto RJ-45 insertion axis
+    new THREE.Vector3(-2.450, 0.097,  0.950), // Straight coaxial lead-in along -X
+    new THREE.Vector3(-2.370, 0.097,  0.950), // Enters center tip of RJ-45 strain-relief boot
+    new THREE.Vector3(-2.210, 0.097,  0.950)  // Submerged inside RJ-45 connector body in socket
   );
 
   const curve = new THREE.CatmullRomCurve3(splinePoints, false, "catmullrom", 0.35);

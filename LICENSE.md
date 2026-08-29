@@ -39,7 +39,7 @@ SOFTWARE.
 
 ---
 
-## 🎨 Third-Party 3D Model Credits & Attributions
+## Third-Party 3D Model Credits & Attributions
 
 The 3D assets in this project are licensed under Creative Commons Attribution licenses:
 

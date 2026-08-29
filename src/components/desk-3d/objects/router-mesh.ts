@@ -4,7 +4,9 @@ import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 
 /**
  * 3D Cyber Battlestation Gateway Router (Gigabit Dual-Band AC2600)
- * Features Dynamic LED Activity Packet Flicker, Antenna Shaders, and Theme Color Sync.
+ * Features Dynamic Texture-Based LED Activity:
+ * - First 4 active lights from the left remain completely STATIC (solid online power/link).
+ * - Remaining lights on the right actively blink/flicker with real network packet throughput.
  */
 export function createRouterMesh(): {
   group: THREE.Group;
@@ -15,7 +17,7 @@ export function createRouterMesh(): {
   const group = new THREE.Group();
   group.name = "gateway-router-system";
 
-  // 1. POSITIONING ON MID-LEFT DESK AREA (Former Note Position)
+  // 1. POSITIONING ON MID-LEFT DESK AREA
   const ROUTER_POS = new THREE.Vector3(-4.4, 0.028, -0.6);
   const ROUTER_ROT_Y = -Math.PI / 8; // Angled facing inward towards the operator
 
@@ -30,14 +32,40 @@ export function createRouterMesh(): {
   routerHitbox.userData = { id: "router", interactive: true };
   group.add(routerHitbox);
 
-  // 3. MODEL LOADING WITH PROCEDURAL FALLBACK
+  // 3. DYNAMIC EMISSIVE CANVAS TEXTURE (1024x1024)
+  const emissiveCanvas = document.createElement("canvas");
+  emissiveCanvas.width = 1024;
+  emissiveCanvas.height = 1024;
+  const eCtx = emissiveCanvas.getContext("2d");
+
+  const dynamicEmissiveTexture = new THREE.CanvasTexture(emissiveCanvas);
+  dynamicEmissiveTexture.flipY = false;
+  dynamicEmissiveTexture.colorSpace = THREE.SRGBColorSpace;
+
+  let currentThemeHex = DEFAULT_THEME.hex;
+  let sourceEmissiveImg: CanvasImageSource | null = null;
+  let routerMaterial: THREE.MeshStandardMaterial | null = null;
+  const wireMaterials: THREE.LineBasicMaterial[] = [];
+
+  // A) First 4 lights from the left: STATIC ON (Solid Power, SYS, WAN, 2.4G)
+  const staticPatches = [
+    { x: 92, y: 581, w: 29, h: 20 },      // 0: Power Icon
+    { x: 630, y: 77, w: 31, h: 31 },      // 1: Status LED 1 (SYS)
+    { x: 454, y: 581, w: 25, h: 19 },     // 2: Status LED 2 (WAN / Internet Link)
+    { x: 928, y: 934, w: 22, h: 33 },     // 3: Status LED 3 (2.4GHz Wi-Fi Solid Link)
+  ];
+
+  // B) Remaining lights on the right: DYNAMIC PACKET ACTIVITY (LAN & 5G Shimmer)
+  const dynamicPatches = [
+    { x: 479, y: 581, w: 24, h: 19, type: "lan_burst" },  // LAN Active Data Stream
+    { x: 898, y: 155, w: 44, h: 33, type: "wifi_pulse" }, // 5GHz Wi-Fi Packet Shimmer
+    { x: 950, y: 934, w: 21, h: 33, type: "probe_ping" }, // Probe / Activity Blip
+  ];
+
+  // Procedural Fallback while loading
   const modelContainer = new THREE.Group();
   group.add(modelContainer);
 
-  const glowMaterials: THREE.MeshStandardMaterial[] = [];
-  const wireMaterials: THREE.LineBasicMaterial[] = [];
-
-  // Procedural Fallback while loading
   const fallbackGeo = new THREE.BoxGeometry(1.4, 0.25, 1.0);
   const fallbackMat = new THREE.MeshStandardMaterial({
     color: 0x070c14,
@@ -49,7 +77,7 @@ export function createRouterMesh(): {
   modelContainer.add(fallbackMesh);
 
   const ROUTER_SCALE = 8.5;
-  const ROUTER_ELEVATION = 0.288; // Elevate to sit cleanly on tabletop
+  const ROUTER_ELEVATION = 0.288;
 
   const loader = new GLTFLoader();
   loader.load(
@@ -69,13 +97,19 @@ export function createRouterMesh(): {
           mesh.castShadow = true;
           mesh.receiveShadow = true;
 
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (mat) {
-            if (mat.emissive && (mat.emissive as THREE.Color).getHex() !== 0) {
-              mat.emissive = new THREE.Color(DEFAULT_THEME.threeColor);
-              mat.emissiveIntensity = 1.8;
-              glowMaterials.push(mat);
+          const origMat = mesh.material as THREE.MeshStandardMaterial;
+          if (origMat) {
+            // Grab the original GLTF emissive texture image for dynamic canvas drawing
+            if (origMat.emissiveMap && origMat.emissiveMap.image) {
+              sourceEmissiveImg = origMat.emissiveMap.image as CanvasImageSource;
             }
+
+            const clonedMat = origMat.clone();
+            clonedMat.emissive = new THREE.Color(currentThemeHex);
+            clonedMat.emissiveMap = dynamicEmissiveTexture;
+            clonedMat.emissiveIntensity = 2.8;
+            mesh.material = clonedMat;
+            routerMaterial = clonedMat;
           }
 
           // Cyber wireframe edges
@@ -97,23 +131,70 @@ export function createRouterMesh(): {
     (err) => console.warn("Could not load /models/router.glb:", err)
   );
 
-  // 4. PACKET FLICKER ANIMATION & THEME LOGIC
-  let simTime = 0;
+  // 4. ANIMATE INDEPENDENT TEXTURE PATCHES DIRECTLY ON THE ROUTER'S MATERIAL
+  let time = 0;
   const updateRouter = (delta: number) => {
-    simTime += delta * 8;
-    // Micro-pulse emissive intensity on status lights
-    if (glowMaterials.length > 0) {
-      const pulse = 1.4 + Math.sin(simTime * 2.5) * 0.4;
-      glowMaterials.forEach((m) => {
-        m.emissiveIntensity = pulse;
-      });
-    }
+    time += delta;
+    if (!eCtx) return;
+
+    // Clear emissive canvas with total black (unlit state)
+    eCtx.fillStyle = "#000000";
+    eCtx.fillRect(0, 0, 1024, 1024);
+
+    // 1. First 4 lights from the left: ALWAYS STATIC ON (Solid 100% full brightness)
+    staticPatches.forEach((p) => {
+      eCtx.save();
+      eCtx.globalAlpha = 1.0;
+      if (sourceEmissiveImg) {
+        eCtx.drawImage(
+          sourceEmissiveImg,
+          p.x, p.y, p.w, p.h,
+          p.x, p.y, p.w, p.h
+        );
+      } else {
+        eCtx.fillStyle = currentThemeHex;
+        eCtx.fillRect(p.x, p.y, p.w, p.h);
+      }
+      eCtx.restore();
+    });
+
+    // 2. Remaining active lights on the right: Dynamic network packet activity
+    const lanBurst = (Math.sin(time * 4.6) > -0.6) ? (Math.sin(time * 26.0) > 0.0 ? 1.0 : 0.12) : 0.18;
+    const wifiShimmer = 0.35 + Math.sin(time * 16.5) * 0.65;
+    const pingCycle = (time * 1.6) % 3.0;
+    const probePing = (pingCycle < 0.14 || (pingCycle > 0.24 && pingCycle < 0.38)) ? 1.0 : 0.12;
+
+    dynamicPatches.forEach((p) => {
+      let a = 1.0;
+      if (p.type === "lan_burst") a = lanBurst;
+      else if (p.type === "wifi_pulse") a = wifiShimmer;
+      else if (p.type === "probe_ping") a = probePing;
+
+      if (a > 0.05) {
+        eCtx.save();
+        eCtx.globalAlpha = a;
+        if (sourceEmissiveImg) {
+          eCtx.drawImage(
+            sourceEmissiveImg,
+            p.x, p.y, p.w, p.h,
+            p.x, p.y, p.w, p.h
+          );
+        } else {
+          eCtx.fillStyle = currentThemeHex;
+          eCtx.fillRect(p.x, p.y, p.w, p.h);
+        }
+        eCtx.restore();
+      }
+    });
+
+    dynamicEmissiveTexture.needsUpdate = true;
   };
 
   const setTheme = (theme: WorkstationTheme) => {
-    glowMaterials.forEach((m) => {
-      m.emissive.setHex(theme.threeColor);
-    });
+    currentThemeHex = theme.hex;
+    if (routerMaterial) {
+      routerMaterial.emissive.setHex(theme.threeColor);
+    }
     wireMaterials.forEach((m) => {
       m.color.setHex(theme.threeColor);
     });

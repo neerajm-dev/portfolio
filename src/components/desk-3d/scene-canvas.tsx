@@ -17,6 +17,7 @@ import { createRouterMesh } from "./objects/router-mesh";
 import { createWatchMesh } from "./objects/watch-mesh";
 import { createEthernetCableMesh } from "./objects/ethernet-cable-mesh";
 import { createFiberCableMesh } from "./objects/fiber-cable-mesh";
+import { createExtensionBoardMesh } from "./objects/extension-board-mesh";
 
 import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 import { TerminalFont, DEFAULT_TERMINAL_FONT } from "@/lib/terminal-fonts";
@@ -30,7 +31,8 @@ export type InteractivePropId =
   | "mouse"
   | "clock"
   | "router"
-  | "watch";
+  | "watch"
+  | "power-board";
 
 interface SceneCanvasProps {
   onSelectObject: (id: InteractivePropId) => void;
@@ -348,6 +350,9 @@ export function SceneCanvas({
     const fiberCable = createFiberCableMesh();
     scene.add(fiberCable.group);
 
+    const extensionBoard = createExtensionBoardMesh();
+    scene.add(extensionBoard.group);
+
     const hologram = createHologramSphere();
     scene.add(hologram.group);
 
@@ -393,6 +398,7 @@ export function SceneCanvas({
       watch.setTheme(newTheme);
       ethernetCable.setTheme(newTheme);
       fiberCable.setTheme(newTheme);
+      extensionBoard.setTheme(newTheme);
       hologram.setTheme(newTheme);
     };
 
@@ -419,13 +425,14 @@ export function SceneCanvas({
 
     const hitboxes: THREE.Mesh[] = [
       createHitbox("laptop", [4.6, 2.6, 3.0], [0, 1.2, 1.55]),
-      createHitbox("id-card", [2.0, 0.4, 1.6], [-3.8, 0.1, 2.6]),
+      createHitbox("id-card", [1.3, 0.35, 0.9], [-3.8, 0.08, 2.6]),
       mouse.mouseHitbox,
       createHitbox("phone", [1.10, 0.35, 1.80], [3.70, 0.1, 0.90]),
       createHitbox("coffee", [1.2, 1.2, 1.2], [5.50, 0.5, 2.65]),
       clock.clockHitbox,
       router.routerHitbox,
       watch.watchHitbox,
+      extensionBoard.boardHitbox,
       hologram.holoMesh,
     ];
 
@@ -624,6 +631,8 @@ export function SceneCanvas({
           } else if (propId === "hologram") {
             hologram.toggleExpand();
             sound.playNodePulse();
+          } else if (propId === "power-board") {
+            extensionBoard.toggleMasterPower();
           } else if (propId !== "coffee") {
             sound.playNodePulse();
           }
@@ -817,6 +826,7 @@ export function SceneCanvas({
       watch.updateWatch(delta);
       ethernetCable.updateCable(delta);
       fiberCable.updateFiber(delta);
+      extensionBoard.updatePower(delta);
 
       // Smooth horizontal, vertical & zoom distance interpolation (Spherical Coordinates)
       currentCamDist += (targetCamDist - currentCamDist) * 0.10;

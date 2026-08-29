@@ -37,15 +37,21 @@ export function createFiberCableMesh(): {
     new THREE.Vector3( -6.500, -5.350,  -72.000), // Sweeping curve left
     new THREE.Vector3( -2.800, -5.350,  -48.000), // Natural winding curve right
     new THREE.Vector3( -5.600, -5.350,  -30.000), // Organic floor slack bend left
-    new THREE.Vector3( -3.200, -5.350,  -18.000), // Approaching workstation room (gentle right bow)
-    new THREE.Vector3( -4.300, -5.330,   -9.500), // Smooth floor transition
+    new THREE.Vector3( -3.800, -5.350,  -18.000), // Approaching workstation desk
+    new THREE.Vector3( -4.200, -5.350,  -14.500), // Flat floor lane
 
-    // B) Natural Slanting Slope from Desk Rear Edge (Z=-5.04, y=0.038) to Floor (y=-5.35)
-    new THREE.Vector3( -4.280, -4.100,   -8.200), // Slanting rise (lower)
-    new THREE.Vector3( -4.270, -2.800,   -7.000), // Slanting rise (mid-lower)
-    new THREE.Vector3( -4.260, -1.500,   -6.000), // Slanting rise (mid-upper)
-    new THREE.Vector3( -4.250, -0.200,   -5.200), // Clearing desk thickness at rear edge
-    new THREE.Vector3( -4.240,  0.015,   -5.040), // Rear table edge bevel wrap (Z=-5.04)
+    // B) Ultra-Smooth Physical Catenary Gravity Curve (Desk Rear Edge Z = -5.04 to Floor Y = -5.35)
+    new THREE.Vector3( -4.240, -5.350,  -12.400), // Tangent merge with floor (Y = -5.350, zero slope)
+    new THREE.Vector3( -4.240, -5.320,  -11.200), // Gentle floor flare
+    new THREE.Vector3( -4.240, -5.100,  -10.100), // Smooth flare up
+    new THREE.Vector3( -4.240, -4.650,   -9.100), // Lower catenary curve
+    new THREE.Vector3( -4.240, -3.950,   -8.200), // Mid-lower fall
+    new THREE.Vector3( -4.240, -3.100,   -7.400), // Mid-air center of gravity
+    new THREE.Vector3( -4.240, -2.200,   -6.700), // Mid-upper fall
+    new THREE.Vector3( -4.240, -1.350,   -6.100), // Upper descent
+    new THREE.Vector3( -4.240, -0.650,   -5.600), // Initial droop off edge
+    new THREE.Vector3( -4.240, -0.180,   -5.250), // Edge clearance
+    new THREE.Vector3( -4.240,  0.015,   -5.040), // Wrapping over rear table edge (Z = -5.04)
 
     // C) Tabletop Routing (Runs flush on desk surface from rear edge directly to router)
     new THREE.Vector3( -4.220,  0.038,   -4.850), // Rear table surface contact

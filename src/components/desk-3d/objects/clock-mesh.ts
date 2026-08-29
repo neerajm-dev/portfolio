@@ -5,6 +5,7 @@ import { WorkstationTheme, DEFAULT_THEME } from "@/lib/theme-colors";
 /**
  * 3D Digital Alarm Clock with Live IST (Indian Standard Time) Display
  * Features 7-Segment LED Canvas Screen, Pulsing Colon, Workstation RGB Theme Sync,
+ * Pill-Shaped Top Control Buttons (MODE, ALARM, SNZ/LIGHT, UP, DOWN) with Labels,
  * and Interactive 12H/24H Format Toggle.
  */
 export function createClockMesh(): {
@@ -18,7 +19,6 @@ export function createClockMesh(): {
   group.name = "digital-clock-system";
 
   // 1. POSITIONING & ORIENTATION ON DESK
-  // Placed in mid-left desk area (former synthesizer position), angled towards operator
   const CLOCK_POS = new THREE.Vector3(-4.2, 0.028, 0.9);
   const CLOCK_ROT_Y = Math.PI / 8; // ~22.5° angle towards chair
 
@@ -34,7 +34,7 @@ export function createClockMesh(): {
   clockHitbox.userData = { id: "clock", interactive: true };
   group.add(clockHitbox);
 
-  // 3. LIVE 7-SEGMENT DYNAMIC CANVAS TEXTURE
+  // 3. LIVE 7-SEGMENT DYNAMIC CANVAS TEXTURE (Clean - No top/bottom text)
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
   canvas.height = 512;
@@ -208,46 +208,27 @@ export function createClockMesh(): {
     const minsStr = parts[1] || "00";
     const secsStr = parts[2] || "00";
 
-    let ampm = "";
     if (!use24Hour) {
-      ampm = hoursNum >= 12 ? "PM" : "AM";
       hoursNum = hoursNum % 12 || 12;
     }
     const hoursStr = String(hoursNum).padStart(2, "0");
 
     const litColor = currentThemeHex;
-    const unlitColor = "rgba(20, 30, 42, 0.4)";
+    const unlitColor = "rgba(20, 30, 42, 0.35)";
 
-    // Top status telemetry bar: DATE & TIMEZONE
-    const dateStr = now.toLocaleDateString("en-US", {
-      timeZone: "Asia/Kolkata",
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).toUpperCase();
-
-    ctx.font = "bold 28px monospace";
-    ctx.fillStyle = `${currentThemeHex}cc`;
-    ctx.fillText(`IST [UTC+5:30] • ${dateStr}`, 90, 68);
-
-    if (ampm) {
-      ctx.fillStyle = currentThemeHex;
-      ctx.fillText(ampm, 860, 68);
-    }
-
-    // Main 7-Segment Digits: [H1] [H2] : [M1] [M2]
-    const digitW = 120;
+    // Perfectly Centered 7-Segment Main Digits: [H1] [H2] : [M1] [M2]
+    const digitW = 125;
     const digitH = 240;
     const segT = 26;
-    const yPos = 120;
+    const yPos = 136; // Vertically centered on 512px canvas (136px top & bottom margins)
 
     // Hours
-    draw7Segment(ctx, 90, yPos, digitW, digitH, segT, hoursStr[0], litColor, unlitColor);
+    draw7Segment(ctx, 85, yPos, digitW, digitH, segT, hoursStr[0], litColor, unlitColor);
     draw7Segment(ctx, 235, yPos, digitW, digitH, segT, hoursStr[1], litColor, unlitColor);
 
     // Pulsing Colon Dots ':'
-    const colonX = 395;
-    const dotR = 14;
+    const colonX = 400;
+    const dotR = 15;
     const dotY1 = yPos + digitH * 0.33;
     const dotY2 = yPos + digitH * 0.67;
 
@@ -260,40 +241,97 @@ export function createClockMesh(): {
     ctx.globalAlpha = 1.0;
 
     // Minutes
-    draw7Segment(ctx, 440, yPos, digitW, digitH, segT, minsStr[0], litColor, unlitColor);
-    draw7Segment(ctx, 585, yPos, digitW, digitH, segT, minsStr[1], litColor, unlitColor);
+    draw7Segment(ctx, 445, yPos, digitW, digitH, segT, minsStr[0], litColor, unlitColor);
+    draw7Segment(ctx, 595, yPos, digitW, digitH, segT, minsStr[1], litColor, unlitColor);
 
     // Seconds (smaller 7-segment digits on the right)
-    const secW = 75;
-    const secH = 150;
+    const secW = 78;
+    const secH = 155;
     const secT = 16;
-    const secY = yPos + 85;
+    const secY = yPos + 80;
 
-    ctx.font = "bold 20px monospace";
+    ctx.font = "bold 18px monospace";
     ctx.fillStyle = `${currentThemeHex}99`;
-    ctx.fillText("SEC", 745, secY - 14);
+    ctx.fillText("SEC", 755, secY - 14);
 
-    draw7Segment(ctx, 745, secY, secW, secH, secT, secsStr[0], litColor, unlitColor);
-    draw7Segment(ctx, 840, secY, secW, secH, secT, secsStr[1], litColor, unlitColor);
-
-    // Bottom telemetry bar: "NEERAJ_M // SYSTEM_CLOCK"
-    ctx.font = "bold 22px monospace";
-    ctx.fillStyle = `${currentThemeHex}88`;
-    ctx.fillText("NEERAJ_M // ATOMIC_SYNC • ASIA/KOLKATA", 90, 445);
+    draw7Segment(ctx, 755, secY, secW, secH, secT, secsStr[0], litColor, unlitColor);
+    draw7Segment(ctx, 850, secY, secW, secH, secT, secsStr[1], litColor, unlitColor);
 
     displayTexture.needsUpdate = true;
   };
 
   renderDisplay(1.0);
 
-  // 4. LOAD 3D DIGITAL ALARM CLOCK GLB
+  // 4. TOP BUTTONS & PRINTED LABELS
+  const topLabelsCanvas = document.createElement("canvas");
+  topLabelsCanvas.width = 1024;
+  topLabelsCanvas.height = 256;
+  const tlCtx = topLabelsCanvas.getContext("2d");
+
+  const topLabelsTexture = new THREE.CanvasTexture(topLabelsCanvas);
+  topLabelsTexture.minFilter = THREE.LinearFilter;
+  topLabelsTexture.magFilter = THREE.LinearFilter;
+  topLabelsTexture.colorSpace = THREE.SRGBColorSpace;
+
+  const renderTopLabels = (themeHex: string) => {
+    if (!tlCtx) return;
+    tlCtx.clearRect(0, 0, 1024, 256);
+
+    tlCtx.textAlign = "center";
+    tlCtx.textBaseline = "middle";
+
+    // 5 Button Positions in Canvas Space (Mapping to X = -0.42, -0.21, 0.00, +0.21, +0.42)
+    const buttons = [
+      { label: "MODE", cx: 160 },
+      { label: "ALARM", cx: 335 },
+      { label: "SNZ/LIGHT", cx: 512 },
+      { label: "UP", cx: 689 },
+      { label: "DOWN", cx: 864 },
+    ];
+
+    buttons.forEach(({ label, cx }) => {
+      // Printed text label above button in adaptive workstation theme color
+      tlCtx.font = label === "SNZ/LIGHT" ? "bold 32px monospace" : "bold 30px monospace";
+      tlCtx.fillStyle = themeHex;
+      tlCtx.shadowColor = themeHex;
+      tlCtx.shadowBlur = 6;
+      tlCtx.fillText(label, cx, 65);
+      tlCtx.shadowBlur = 0;
+    });
+
+    topLabelsTexture.needsUpdate = true;
+  };
+
+  renderTopLabels(DEFAULT_THEME.hex);
+
+  // Helper to create true pill-shaped geometry
+  function createPillGeometry(width: number, height: number, radius: number, depth: number) {
+    const shape = new THREE.Shape();
+    const hw = (width - 2 * radius) / 2;
+    const hh = height / 2;
+    shape.moveTo(-hw, -hh);
+    shape.lineTo(hw, -hh);
+    shape.absarc(hw, 0, radius, -Math.PI / 2, Math.PI / 2, false);
+    shape.lineTo(-hw, hh);
+    shape.absarc(-hw, 0, radius, Math.PI / 2, Math.PI * 1.5, false);
+
+    return new THREE.ExtrudeGeometry(shape, {
+      depth,
+      bevelEnabled: true,
+      bevelSegments: 4,
+      bevelSize: 0.003,
+      bevelThickness: 0.003,
+    });
+  }
+
+  // 5. LOAD 3D DIGITAL ALARM CLOCK GLB & MOUNT PILL BUTTONS
   const modelContainer = new THREE.Group();
   group.add(modelContainer);
 
-  let screenMaterial: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial | null = null;
+  let screenMaterial: THREE.MeshStandardMaterial | null = null;
   const wireMaterials: THREE.LineBasicMaterial[] = [];
 
-  // Procedural fallback while loading
+  // Fallback while loading
   const fallbackGeo = new THREE.BoxGeometry(1.4, 0.56, 0.36);
   const fallbackMat = new THREE.MeshStandardMaterial({
     color: 0x0a1018,
@@ -313,14 +351,20 @@ export function createClockMesh(): {
 
       const clockScene = gltf.scene;
       clockScene.position.set(0, 0.295, 0);
+
       clockScene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
 
-          if (mesh.name.toLowerCase().includes("screen") || (mesh.material && (mesh.material as THREE.Material).name.toLowerCase().includes("screen"))) {
-            // Apply live dynamic canvas texture to screen
+          if (mesh.name === "Clock_Buttons" || mesh.name.toLowerCase().includes("button")) {
+            // Hide the old square/raw GLB buttons in favor of our high-precision pill buttons
+            mesh.visible = false;
+          } else if (
+            mesh.name.toLowerCase().includes("screen") ||
+            (mesh.material && (mesh.material as THREE.Material).name.toLowerCase().includes("screen"))
+          ) {
             const mat = new THREE.MeshStandardMaterial({
               map: displayTexture,
               emissiveMap: displayTexture,
@@ -353,13 +397,65 @@ export function createClockMesh(): {
         }
       });
 
+      // 6. MOUNT PILL BUTTONS & LABELS ON TOP SURFACE OF CLOCK
+      const topPanelGroup = new THREE.Group();
+      topPanelGroup.position.set(0, 0.280, 0); // Flush on top of chassis
+      clockScene.add(topPanelGroup);
+
+      // A) Top Printed Labels Plane (Z = -0.16..+0.16)
+      const labelsPlaneGeo = new THREE.PlaneGeometry(1.36, 0.32);
+      const labelsPlaneMat = new THREE.MeshBasicMaterial({
+        map: topLabelsTexture,
+        transparent: true,
+        toneMapped: false,
+        side: THREE.DoubleSide,
+      });
+      const labelsPlaneMesh = new THREE.Mesh(labelsPlaneGeo, labelsPlaneMat);
+      labelsPlaneMesh.rotation.x = -Math.PI / 2;
+      labelsPlaneMesh.position.set(0, 0.002, 0); // Hover 2mm above top surface
+      topPanelGroup.add(labelsPlaneMesh);
+
+      // B) 5 Pill-Shaped Extruded Buttons
+      const btnMat = new THREE.MeshStandardMaterial({
+        color: 0x121922,
+        roughness: 0.38,
+        metalness: 0.65,
+      });
+
+      const btnWireMat = new THREE.LineBasicMaterial({
+        color: DEFAULT_THEME.threeColor,
+        transparent: true,
+        opacity: 0.45,
+      });
+      wireMaterials.push(btnWireMat);
+
+      // Button specs: [Label, X Position, Width, Height, Radius, Extrude Depth]
+      const buttonSpecs = [
+        { label: "MODE", x: -0.420, w: 0.125, h: 0.052, r: 0.026, d: 0.015 },
+        { label: "ALARM", x: -0.210, w: 0.125, h: 0.052, r: 0.026, d: 0.015 },
+        { label: "SNZ/LIGHT", x: 0.000, w: 0.205, h: 0.068, r: 0.034, d: 0.018 }, // Large center snooze pill
+        { label: "UP", x: 0.210, w: 0.125, h: 0.052, r: 0.026, d: 0.015 },
+        { label: "DOWN", x: 0.420, w: 0.125, h: 0.052, r: 0.026, d: 0.015 },
+      ];
+
+      buttonSpecs.forEach(({ x, w, h, r, d }) => {
+        const pillGeo = createPillGeometry(w, h, r, d);
+        const pillMesh = new THREE.Mesh(pillGeo, btnMat);
+        pillMesh.rotation.x = -Math.PI / 2;
+        // Positioned at Z = 0.038 on top panel
+        pillMesh.position.set(x, 0.003, 0.038);
+        pillMesh.castShadow = true;
+        pillMesh.receiveShadow = true;
+        topPanelGroup.add(pillMesh);
+      });
+
       modelContainer.add(clockScene);
     },
     undefined,
     (err) => console.warn("Could not load /models/digital_clock.glb:", err)
   );
 
-  // 5. UPDATE TICK & THEME LOGIC
+  // 7. UPDATE TICK & THEME LOGIC
   const updateClock = (delta: number) => {
     pulseTime += delta * 3.5;
     // Smooth sine wave pulse for colon ':'
@@ -379,6 +475,7 @@ export function createClockMesh(): {
       screenMaterial.emissive.setHex(theme.threeColor);
     }
     renderDisplay(1.0);
+    renderTopLabels(theme.hex);
   };
 
   const toggleFormat = () => {
