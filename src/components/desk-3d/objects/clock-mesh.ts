@@ -13,7 +13,8 @@ export function createClockMesh(): {
   clockHitbox: THREE.Mesh;
   setTheme: (theme: WorkstationTheme) => void;
   updateClock: (delta: number) => void;
-  toggleFormat: () => void;
+  toggleFormat: () => boolean;
+  getIs24Hour: () => boolean;
 } {
   const group = new THREE.Group();
   group.name = "digital-clock-system";
@@ -83,6 +84,11 @@ export function createClockMesh(): {
       "7": [true, true, true, false, false, false, false],
       "8": [true, true, true, true, true, true, true],
       "9": [true, true, true, true, false, true, true],
+      "A": [true, true, true, false, true, true, true],
+      "P": [true, true, false, false, true, true, true],
+      "H": [false, true, true, false, true, true, true],
+      "R": [true, true, false, false, true, true, true],
+      "M": [true, true, true, false, true, true, false],
       "-": [false, false, false, false, false, false, true],
       " ": [false, false, false, false, false, false, false],
     };
@@ -179,6 +185,32 @@ export function createClockMesh(): {
       ],
       lit[6]
     );
+
+    // Custom digital center segment for 'M'
+    if (String(digit) === "M") {
+      drawPoly(
+        [
+          pt(hw - t * 0.5, t + gap),
+          pt(hw + t * 0.5, t + gap),
+          pt(hw + t * 0.5, hh),
+          pt(hw - t * 0.5, hh),
+        ],
+        lit[0]
+      );
+    }
+
+    // Custom digital diagonal leg for 'R'
+    if (String(digit) === "R") {
+      drawPoly(
+        [
+          pt(hw - t * 0.2, hh + gap),
+          pt(hw + t * 0.8, hh + gap),
+          pt(w, h - gap),
+          pt(w - t * 1.1, h - gap),
+        ],
+        lit[0]
+      );
+    }
   };
 
   const renderDisplay = (colonPulseAlpha = 1.0) => {
@@ -196,22 +228,38 @@ export function createClockMesh(): {
 
     // Read current live IST time
     const now = new Date();
-    const istTimeStr = now.toLocaleTimeString("en-US", {
+    const istTime24Str = now.toLocaleTimeString("en-US", {
       timeZone: "Asia/Kolkata",
       hour12: false,
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
-    const parts = istTimeStr.split(":");
-    let hoursNum = parseInt(parts[0], 10);
+    const parts = istTime24Str.split(":");
+    const rawHours = parseInt(parts[0], 10);
     const minsStr = parts[1] || "00";
     const secsStr = parts[2] || "00";
 
+    const isPM = rawHours >= 12;
+    let displayHours = rawHours;
     if (!use24Hour) {
-      hoursNum = hoursNum % 12 || 12;
+      displayHours = rawHours % 12 || 12;
     }
-    const hoursStr = String(hoursNum).padStart(2, "0");
+    const hoursStr = String(displayHours).padStart(2, use24Hour ? "0" : " ");
+
+    // Top Right Corner Clean Digital Format Indicator (AM / PM / 24 HR)
+    ctx.save();
+    ctx.font = "900 26px monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = currentThemeHex;
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = currentThemeHex;
+    const modeLabel = use24Hour ? "24 HR" : (isPM ? "PM" : "AM");
+    ctx.fillText(modeLabel, 928, 105);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(modeLabel, 928, 105);
+    ctx.restore();
 
     const litColor = currentThemeHex;
     const unlitColor = "rgba(20, 30, 42, 0.35)";
@@ -252,6 +300,7 @@ export function createClockMesh(): {
 
     ctx.font = "bold 18px monospace";
     ctx.fillStyle = `${currentThemeHex}99`;
+    ctx.textAlign = "left";
     ctx.fillText("SEC", 755, secY - 14);
 
     draw7Segment(ctx, 755, secY, secW, secH, secT, secsStr[0], litColor, unlitColor);
@@ -481,7 +530,10 @@ export function createClockMesh(): {
   const toggleFormat = () => {
     use24Hour = !use24Hour;
     renderDisplay(1.0);
+    return use24Hour;
   };
+
+  const getIs24Hour = () => use24Hour;
 
   return {
     group,
@@ -489,5 +541,6 @@ export function createClockMesh(): {
     setTheme,
     updateClock,
     toggleFormat,
+    getIs24Hour,
   };
 }

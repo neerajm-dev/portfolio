@@ -918,19 +918,25 @@ export function DeveloperDesk3D() {
         break;
       }
       case "clock": {
-        sound.playNodePulse();
         const now = new Date();
-        const istStr = now.toLocaleTimeString("en-US", {
+        const ist24 = now.toLocaleTimeString("en-US", {
           timeZone: "Asia/Kolkata",
           hour12: false,
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
         });
+        const ist12 = now.toLocaleTimeString("en-US", {
+          timeZone: "Asia/Kolkata",
+          hour12: true,
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+        });
         setTerminalLines((lines) => [
           ...lines.slice(-6),
-          `[neeraj@sys ~]$ [EVENT] ATOMIC_CLOCK: IST SYNC`,
-          `[SYS] IST TIME: ${istStr} (UTC+5:30) // 7-SEGMENT LED DISPLAY // ASIA/KOLKATA ⏰`,
+          `[neeraj@sys ~]$ [EVENT] ATOMIC_CLOCK: FORMAT_TOGGLED (12H ⟷ 24H)`,
+          `[SYS] IST TIME: ${ist24} / ${ist12} // 7-SEGMENT LED DISPLAY // ASIA/KOLKATA ⏰`,
         ]);
         break;
       }

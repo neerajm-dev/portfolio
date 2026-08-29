@@ -633,6 +633,9 @@ export function SceneCanvas({
             sound.playNodePulse();
           } else if (propId === "power-board") {
             extensionBoard.toggleMasterPower();
+          } else if (propId === "clock") {
+            clock.toggleFormat();
+            sound.playClick(1.6);
           } else if (propId !== "coffee") {
             sound.playNodePulse();
           }
