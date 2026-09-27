@@ -8,100 +8,159 @@
 |_| \_|_____|_____|_| \_/_/   \_\___ /  |_|  |_|
 ```
 
-# 🕹️ 3D CYBERPUNK BATTLESTATION & ASCII OS
-### An Interactive 3D Spatial Developer Workstation in Next.js 15 & WebGL
+# 3D Developer Workspace & Portfolio
 
-[![Live Platform](https://img.shields.io/badge/LIVE_URL-neerajm.vercel.app-00ff66?style=for-the-badge&logo=vercel&logoColor=black)](https://neerajm.vercel.app)
-[![Next.js 15](https://img.shields.io/badge/NEXT.JS_15-Turbopack-black?style=for-the-badge&logo=next.js&logoColor=00ff66)](https://nextjs.org)
-[![React 19](https://img.shields.io/badge/REACT_19-Server_Components-black?style=for-the-badge&logo=react&logoColor=00ff66)](https://react.dev)
-[![TypeScript Strict](https://img.shields.io/badge/TYPESCRIPT-Strict_Mode-black?style=for-the-badge&logo=typescript&logoColor=00ff66)](https://www.typescriptlang.org)
-[![License](https://img.shields.io/badge/LICENSE-Attribution--NC-black?style=for-the-badge&logo=open-source-initiative&logoColor=00ff66)](LICENSE.md)
+An interactive 3D spatial developer environment and terminal built with Next.js, Three.js, and WebGL.
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-neerajm.vercel.app-00ff66?style=for-the-badge&logo=vercel&logoColor=black)](https://neerajm.vercel.app)
+[![Next.js](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org)
+[![React](https://img.shields.io/badge/React_19-black?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-38BDF8?style=for-the-badge&logo=tailwind-css&logoColor=black)](https://tailwindcss.com)
+[![License](https://img.shields.io/badge/License-MIT_Attribution--NC-black?style=for-the-badge&logo=open-source-initiative&logoColor=00ff66)](LICENSE)
 
 </div>
 
 ---
 
-## 🌌 Overview
+## Overview
 
-Most developer portfolios are standard vertical scroll pages with generic cards. **This project breaks that paradigm completely.**
+This repository contains the source code for [neerajm.vercel.app](https://neerajm.vercel.app), an interactive 3D spatial developer portfolio. Built with Next.js 16 and Three.js, the application presents a navigable 3D developer desk environment in place of a traditional flat scroll layout.
 
-This is an **interactive 3D spatial developer battlestation** rendered in a high-contrast phosphor retro-hacker aesthetic. Visitors are physically seated at a virtual desk featuring an illuminated **ASUS TUF Gaming Laptop**, highlighted WASD keyboard keys, rising coffee steam, a procedural audio synth deck, and an interactive flippable ASCII ID card.
+Visitors can orbit around the scene, inspect detailed 3D hardware components and desk peripherals, execute commands in an operable in-browser terminal, switch phosphor theme palettes in real time, and review featured software projects via an interactive ID card.
 
 ---
 
-## ✨ Key Technical Features
+## Features
 
 | Feature | Description |
 | :--- | :--- |
-| **🎮 360° Orbital 3D Room** | Smooth camera orbit and zoom around the entire desk table with perspective geometry and illuminated laptop lid. |
-| **💻 Operable Laptop Terminal** | A live in-browser CLI running inside the 3D laptop screen supporting commands like `help`, `whoami`, `color`, and `clear`. |
-| **🌈 Live RGB Theme Engine** | Type `color` in the laptop terminal to dynamically re-skin the entire 3D world across **6 live color profiles** (`Matrix Green`, `Cyber Cyan`, `Solar Amber`, `Synthwave Purple`, `Tokyo Red`, `Ice Titanium`). |
-| **💳 3D Flippable ASCII ID Card** | A credit-card sized operator badge with 8px rounded corners, authentic CRT phosphor glow, and an `AnimatePresence` 3D flip revealing actual production projects (`KTCC`, `BrotoRaise`, `Timebox`, `Inklave`). |
-| **🔊 Procedural Web Audio Synth** | 100% native browser **Web Audio API oscillator engine** providing mechanical keystroke clicks and UI SFX with **0 KB external audio files**. |
-| **☕ Spatial Particle Ambient** | Subtle particle physics rendering rising steam from the coffee mug in real-time WebGL. |
+| **Interactive 3D Workspace** | Real-time WebGL scene with orbit camera controls, perspective projection, dynamic lighting, and custom procedural/GLTF models. |
+| **Integrated Screen Terminal** | Operable command-line interface running on the laptop display supporting commands such as `help`, `whoami`, `projects`, `color`, `stack`, and `clear`. |
+| **Dynamic Phosphor Themes** | Real-time palette engine supporting 7 theme presets (`Matrix Green`, `Cyber Cyan`, `Pure White`, `Solar Amber`, `Synthwave Purple`, `Tokyo Red`, `Ice Titanium`). |
+| **Interactive ID Badge** | Inspectable 3D developer credential card with smooth flip animations detailing active software projects and technical achievements. |
+| **Procedural Audio Engine** | Native Web Audio API synthesizer generating real-time keystroke clicks and interface sound effects with zero external audio assets. |
+| **Performance Optimization** | Low-poly asset decimation, procedural geometries, offscreen canvas tint caching, and responsive viewport scaling. |
 
 ---
 
-## 🛠️ Battle-Tested Tech Stack
+## Tech Stack
+
+| Category | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16 (App Router, Turbopack) | Core web application framework and build pipeline |
+| **Runtime / UI** | React 19, TypeScript | Strict-typed component state and interface logic |
+| **3D & Graphics** | Three.js, WebGL, Canvas API | 3D scene graph, procedural geometry, lighting, and textures |
+| **Animation** | Framer Motion | Smooth UI modal transitions and 3D card flips |
+| **Styling** | Tailwind CSS 4 | Responsive layouts and design token system |
+| **Audio** | Web Audio API | Procedural sound synthesis via native oscillators |
+| **Deployment** | Vercel Edge Network | Global static edge distribution and telemetry |
+
+---
+
+## Project Structure
 
 ```text
-├── Framework        : Next.js 15 (App Router, Turbopack)
-├── UI & Engine      : React 19, TypeScript (Strict Mode)
-├── 3D & Graphics    : Three.js / WebGL Spatial Shaders, Canvas API
-├── Animations       : Framer Motion (GPU Matrix Transforms)
-├── Styling          : Tailwind CSS 4, Phosphor Monochromatic Palettes
-├── Audio Synthesis  : Native Web Audio API (Square & Sine Wave Oscillators)
-└── Deployment       : Vercel Edge Global CDN ($0.00 Permanent Egress)
+portfolio/
+├── public/
+│   └── models/                      # Optimized GLTF/GLB 3D assets
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx               # Root layout, font definitions, metadata
+│   │   ├── page.tsx                 # Application entry point
+│   │   └── globals.css              # Global styles and Tailwind v4 setup
+│   ├── components/
+│   │   └── desk-3d/
+│   │       ├── developer-desk-3d.tsx # Main 3D scene controller & terminal state
+│   │       ├── scene-canvas.tsx      # Three.js canvas, lighting, and render loop
+│   │       └── objects/              # Procedural and GLTF mesh components
+│   │           ├── laptop-mesh.ts    # Laptop body, screen canvas, keyboard
+│   │           ├── extension-board-mesh.ts # Power strip, LED indicators, cables
+│   │           ├── ethernet-cable-mesh.ts  # Spline-curved cable routing
+│   │           ├── id-card-mesh.ts   # 3D flippable credential badge
+│   │           ├── coffee-mesh.ts    # Coffee mug with steam particle system
+│   │           └── ...               # Clock, router, watch, phone, peripherals
+│   ├── lib/
+│   │   ├── theme-colors.ts          # Color palettes and dynamic avatar tinting
+│   │   ├── sound.ts                 # Web Audio API oscillator synthesis
+│   │   └── constants.ts             # Developer bio, project details, social links
+│   └── types/                       # TypeScript definitions and interfaces
+├── LICENSE                          # License terms and model attributions
+└── package.json
 ```
 
 ---
 
-## 🧠 Philosophy: "The Extended Mind"
+## Getting Started
 
-> *"Software engineering in 2026 is no longer about typing syntax line-by-line; it is about human vision, domain context, and architectural tenacity multiplied by autonomous AI execution."*
+### Prerequisites
 
-This platform was designed and directed by **Neeraj M (19yo, Kollam, Kerala)** and built through high-speed AI pair programming with **Google Antigravity IDE (Claude 3.7 Sonnet & Gemini 2.5 Pro)**.
+Ensure you have the following installed locally:
+- [Node.js](https://nodejs.org/) (version 20.x or later)
+- [npm](https://www.npmjs.com/) or any compatible package manager (`pnpm`, `yarn`)
 
----
+### Installation
 
-## 🚀 Local Development Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/neerajm-dev/portfolio.git
+   cd portfolio
+   ```
 
-Clone the repository and spin up the local development workstation in under 60 seconds:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+### Production Build
+
+To test the production build locally:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/neerajm-dev/portfolio.git
-cd portfolio
-
-# 2. Install dependencies
-npm install
-
-# 3. Start the Next.js Turbopack development server
-npm run dev
+npm run build
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to enter the 3D battlestation.
+---
+
+## License & Attribution
+
+This project is licensed under a custom **MIT License with Non-Commercial & Mandatory Public UI Attribution Clauses**.
+
+- **Educational & Personal Use:** You are welcome to inspect, study, and fork the code for non-commercial educational purposes.
+- **Attribution:** Any public deployment utilizing this 3D workstation architecture must retain a visible, clickable attribution link to [@neerajm-dev](https://github.com/neerajm-dev).
+- **Brand Protection:** Personal branding assets (including `avatar-neeraj.png`, personal credentials, and identity copy) are strictly reserved.
+
+Refer to [`LICENSE`](LICENSE) for full terms.
+
+### Third-Party 3D Assets
+
+The following 3D assets used in the scene are licensed under Creative Commons Attribution licenses:
+
+| Asset | Creator | Source & License |
+| :--- | :--- | :--- |
+| **3D Router** | SanForge Studio / Grand Dog Studio | [Sketchfab (o7Ipv)](https://skfb.ly/o7Ipv) • [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| **Notepad** | FractalSpace | [Sketchfab (oPNXP)](https://skfb.ly/oPNXP) • [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| **Digital Watch** | SpatialNeglect / Mateusz Woliński | [Sketchfab (oxPtV)](https://skfb.ly/oxPtV) • [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| **Gaming Mouse** | jerard27 | [Sketchfab (p8Gty)](https://skfb.ly/p8Gty) • [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) |
+| **Mobile Phone** | Alain Sorazu | [Sketchfab (6S6wG)](https://skfb.ly/6S6wG) • [CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/) |
+| **Digital Alarm Clock** | Neeraj M | Custom modeled in-house (`public/models/digital_clock.glb`) |
 
 ---
 
-## 📄 License & Attribution
+## Author
 
-This project is licensed under a custom **MIT License with Non-Commercial & Mandatory Public UI Attribution Clauses**. You are welcome to inspect, study, and learn from the code for educational and open-source purposes. Any public web deployments derived from this codebase must maintain visible attribution to [@neerajm-dev](https://github.com/neerajm-dev) in the website footer or about modal. Personal branding assets and avatar are strictly reserved. See [`LICENSE.md`](LICENSE.md) and [`LICENSE`](LICENSE) for details.
-
-### 🎨 3D Model Credits & Licenses
-- **3D Router:** ["3D Router"](https://skfb.ly/o7Ipv) by SanForge Studio / Grand Dog Studio ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
-- **Notepad:** ["Notepad"](https://skfb.ly/oPNXP) by FractalSpace ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)) — *Decimated & WebP-optimized for high-performance WebGL*
-- **Digital Watch:** ["Digital Watch"](https://skfb.ly/oxPtV) by SpatialNeglect / Mateusz Woliński ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
-- **Gaming Mouse:** ["Gaming Mouse"](https://skfb.ly/p8Gty) by jerard27 ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))
-- **Mobile Phone:** ["Mobile phone"](https://skfb.ly/6S6wG) by Alain Sorazu ([CC BY-SA 4.0](http://creativecommons.org/licenses/by-sa/4.0/))
-- **Digital Alarm Clock:** Custom modeled in-house by Neeraj M / Antigravity AI (`public/models/digital_clock.glb`, 61 KB)
-
----
-
-<div align="center">
-
-**Built with relentless craft by [Neeraj M](https://github.com/neerajm-dev)**  
-*BCA @ Sree Narayana College of Technology, Kollam, Kerala*  
-`hi.neerajm@gmail.com` • [@neerajm_dev](https://instagram.com/neerajm_dev)
-
-</div>
+**Neeraj M**  
+Full-Stack & Systems Developer  
+- Website: [neerajm.vercel.app](https://neerajm.vercel.app)  
+- GitHub: [@neerajm-dev](https://github.com/neerajm-dev)  
+- Email: [hi.neerajm@gmail.com](mailto:hi.neerajm@gmail.com)  
+- Instagram: [@neerajm_dev](https://instagram.com/neerajm_dev)
